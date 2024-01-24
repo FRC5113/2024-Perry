@@ -30,10 +30,8 @@ class Drivetrain:
     def arcade_drive(self, forward: float, turn: float):
         if not (-1.0 <= forward <= 1.0):
             raise Exception(f"Improper value for forward entered: {forward}")
-            return
         if not (-1.0 <= turn <= 1.0):
             raise Exception(f"Improper value for turn entered: {turn}")
-            return
         self.forward = forward
         self.turn = turn
 

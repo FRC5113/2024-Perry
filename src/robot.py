@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import wpilib
+from phoenix5 import WPI_TalonSRX
 from rev import CANSparkMax, CANSparkLowLevel
 from magicbot import MagicRobot
 
 from components.drivetrain import Drivetrain
+from components.shooter import Shooter
 import util
 
 
@@ -13,20 +15,20 @@ class MyRobot(MagicRobot):
     #
 
     drivetrain: Drivetrain
+    shooter: Shooter
 
     def createObjects(self):
         """Initialize all wpilib motors & sensors"""
-        self.drivetrain_front_left_motor = CANSparkMax(
-            41, CANSparkLowLevel.MotorType.kBrushless
+        self.drivetrain_front_left_motor = WPI_TalonSRX(41)
+        self.drivetrain_front_right_motor = WPI_TalonSRX(44)
+        self.drivetrain_back_left_motor = WPI_TalonSRX(42)
+        self.drivetrain_back_right_motor = WPI_TalonSRX(43)
+
+        self.shooter_left_motor = CANSparkMax(
+            5, CANSparkLowLevel.MotorType.kBrushless
         )
-        self.drivetrain_front_right_motor = CANSparkMax(
-            44, CANSparkLowLevel.MotorType.kBrushless
-        )
-        self.drivetrain_back_left_motor = CANSparkMax(
-            42, CANSparkLowLevel.MotorType.kBrushless
-        )
-        self.drivetrain_back_right_motor = CANSparkMax(
-            43, CANSparkLowLevel.MotorType.kBrushless
+        self.shooter_right_motor = CANSparkMax(
+            2, CANSparkLowLevel.MotorType.kBrushless
         )
 
         self.xbox = wpilib.XboxController(0)
@@ -45,6 +47,7 @@ class MyRobot(MagicRobot):
             self.drivetrain.arcade_drive(
                 self.curve(self.xbox.getLeftY()), -self.curve(self.xbox.getLeftX())
             )
+            self.shooter.spin(self.xbox.getRightY())
         except:
             self.onException()
 
