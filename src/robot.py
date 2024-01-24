@@ -16,10 +16,18 @@ class MyRobot(MagicRobot):
 
     def createObjects(self):
         """Initialize all wpilib motors & sensors"""
-        self.drivetrain_front_left_motor = CANSparkMax(41, CANSparkLowLevel.MotorType.kBrushless)
-        self.drivetrain_front_right_motor = CANSparkMax(44, CANSparkLowLevel.MotorType.kBrushless)
-        self.drivetrain_back_left_motor = CANSparkMax(42, CANSparkLowLevel.MotorType.kBrushless)
-        self.drivetrain_back_right_motor = CANSparkMax(43, CANSparkLowLevel.MotorType.kBrushless)
+        self.drivetrain_front_left_motor = CANSparkMax(
+            41, CANSparkLowLevel.MotorType.kBrushless
+        )
+        self.drivetrain_front_right_motor = CANSparkMax(
+            44, CANSparkLowLevel.MotorType.kBrushless
+        )
+        self.drivetrain_back_left_motor = CANSparkMax(
+            42, CANSparkLowLevel.MotorType.kBrushless
+        )
+        self.drivetrain_back_right_motor = CANSparkMax(
+            43, CANSparkLowLevel.MotorType.kBrushless
+        )
 
         self.xbox = wpilib.XboxController(0)
 
