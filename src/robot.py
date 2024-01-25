@@ -24,16 +24,13 @@ class MyRobot(MagicRobot):
         self.drivetrain_back_left_motor = WPI_TalonSRX(42)
         self.drivetrain_back_right_motor = WPI_TalonSRX(43)
 
-        self.shooter_left_motor = CANSparkMax(
-            5, CANSparkLowLevel.MotorType.kBrushless
-        )
-        self.shooter_right_motor = CANSparkMax(
-            2, CANSparkLowLevel.MotorType.kBrushless
-        )
+        self.shooter_left_motor = CANSparkMax(5, CANSparkLowLevel.MotorType.kBrushless)
+        self.shooter_right_motor = CANSparkMax(2, CANSparkLowLevel.MotorType.kBrushless)
 
         self.xbox = wpilib.XboxController(0)
 
-        self.curve = util.cubic_curve(scalar=3, deadband=0.1, max_mag=1)
+        self.drive_curve = util.cubic_curve(scalar=3, deadband=0.1, max_mag=1)
+        self.shooter_curve = util.linear_curve(deadband=0.1)
 
     def teleopInit(self):
         """Called right before teleop control loop starts"""
@@ -45,9 +42,10 @@ class MyRobot(MagicRobot):
 
         try:
             self.drivetrain.arcade_drive(
-                self.curve(self.xbox.getLeftY()), -self.curve(self.xbox.getLeftX())
+                self.drive_curve(self.xbox.getLeftY()),
+                -self.drive_curve(self.xbox.getLeftX()),
             )
-            self.shooter.spin(self.xbox.getRightY())
+            self.shooter.spin(self.shooter_curve(self.xbox.getRightY()))
         except:
             self.onException()
 

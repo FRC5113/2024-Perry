@@ -20,4 +20,3 @@ class Shooter:
     def execute(self):
         self.left_motor.set(self.speed)
         self.right_motor.set(self.speed)
-        
