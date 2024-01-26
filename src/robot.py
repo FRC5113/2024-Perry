@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import wpilib
-from phoenix5 import WPI_TalonSRX
+from wpilib import DoubleSolenoid, PneumaticsModuleType
 from rev import CANSparkMax, CANSparkLowLevel
 from magicbot import MagicRobot
 
-from components.drivetrain import Drivetrain
+from components.drivetrain import Drivetrain, OctoMode
 from components.indexer import Indexer
 from components.intake import Intake
 from components.shooter import Shooter
@@ -23,19 +23,23 @@ class MyRobot(MagicRobot):
 
     def createObjects(self):
         """Initialize all wpilib motors & sensors"""
-        # eventually correct all ids and remove EmptyControllers
-        BRUSHLESS = CANSparkLowLevel.MotorType.kBrushless
-        self.drivetrain_front_left_motor = CANSparkMax(5, BRUSHLESS)
-        self.drivetrain_front_right_motor = CANSparkMax(50, BRUSHLESS)
-        self.drivetrain_back_left_motor = CANSparkMax(51, BRUSHLESS)
-        self.drivetrain_back_right_motor = CANSparkMax(52, BRUSHLESS)
-        self.indexer_feed_left_motor = WPI_TalonSRX(25)
-        self.indexer_feed_right_motor = WPI_TalonSRX(41)
-        self.indexer_belt_motor = util.EmptyController()  # replace w/ talon fx
-        self.intake_joint_left_motor = CANSparkMax(2, BRUSHLESS)
-        self.intake_joint_right_motor = CANSparkMax(3, BRUSHLESS)
-        self.shooter_left_motor = CANSparkMax(53, BRUSHLESS)
-        self.shooter_right_motor = CANSparkMax(54, BRUSHLESS)
+        self.drivetrain_front_left_motor = util.WPI_TalonFX(0)
+        self.drivetrain_front_right_motor = util.WPI_TalonFX(0)
+        self.drivetrain_back_left_motor = util.WPI_TalonFX(0)
+        self.drivetrain_back_right_motor = util.WPI_TalonFX(0)
+
+        # update with actual ids
+        self.drivetrain_solenoid = DoubleSolenoid(
+            PneumaticsModuleType.REVPH, 0, 0
+        )
+
+        self.indexer_feed_left_motor = util.EmptyController()
+        self.indexer_feed_right_motor = util.EmptyController()
+        self.indexer_belt_motor = util.EmptyController()
+        self.intake_joint_left_motor = util.EmptyController()
+        self.intake_joint_right_motor = util.EmptyController()
+        self.shooter_left_motor = util.EmptyController()
+        self.shooter_right_motor = util.EmptyController()
 
         self.xbox = wpilib.XboxController(0)
 
@@ -51,23 +55,25 @@ class MyRobot(MagicRobot):
         actions"""
 
         with self.consumeExceptions():
-            # self.drivetrain.arcade_drive(
-            #     self.drive_curve(self.xbox.getLeftY()),
-            #     -self.drive_curve(self.xbox.getLeftX()),
-            # )
-            if self.xbox.getAButton():
-                self.shooter.enable()
-            else:
-                self.shooter.disable()
-            if self.xbox.getBButton():
-                self.indexer.enable_feed()
-            else:
-                self.indexer.disable_feed()
-            """VERY UNSAFE: MAKE SURE TO IMPLEMENT LIMIT SWITCHES
-            AND/OR ENCODERS IF TESTING WITH FULL INTAKE ATTACHED
-            """
-            # positive up, negative down
-            self.intake.set_joint_speed(self.intake_curve(self.xbox.getRightY()))
+            # may want to consider a more sound way of changing modes
+            if self.xbox.getXButton():
+                self.drivetrain.set_mode(OctoMode.MECANUM_DRIVE)
+            if self.xbox.getYButton():
+                self.drivetrain.set_mode(OctoMode.DIFFERENTIAL_DRIVE)
+
+            if self.drivetrain.get_mode() == OctoMode.MECANUM_DRIVE:
+                self.drivetrain.cartesian_drive(
+                    self.drive_curve(self.xbox.getLeftY()),
+                    self.drive_curve(self.xbox.getLeftX()),
+                    self.drive_curve(-self.xbox.getRightX()),
+                )
+            if self.drivetrain.get_mode() == OctoMode.DIFFERENTIAL_DRIVE:
+                self.drivetrain.arcade_drive(
+                    self.drive_curve(self.xbox.getLeftY()),
+                    self.drive_curve(-self.xbox.getRightX()),
+                )
+
+            self.shooter.spin(self.shooter_curve(-self.xbox.getRightTriggerAxis()))
 
 
 if __name__ == "__main__":
