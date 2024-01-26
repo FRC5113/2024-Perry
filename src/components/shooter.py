@@ -13,8 +13,7 @@ class Shooter:
         self.right_motor.setInverted(True)
 
     def spin(self, speed: float):
-        if not (-1.0 <= speed <= 1.0):
-            raise Exception(f"Improper value for speed entered: {speed}")
+        assert -1.0 < speed < 1.0, f"Improper speed: {speed}"
         self.speed = speed
 
     def execute(self):
