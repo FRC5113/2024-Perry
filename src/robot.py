@@ -9,6 +9,7 @@ from components.indexer import Indexer
 from components.intake import Intake
 from components.shooter import Shooter
 import util
+from util import WPI_TalonFX
 
 
 class MyRobot(MagicRobot):
@@ -45,10 +46,6 @@ class MyRobot(MagicRobot):
 
         self.drive_curve = util.cubic_curve(scalar=1, deadband=0.1, max_mag=1)
         self.intake_curve = util.linear_curve(scalar=1, deadband=0.1, max_mag=1)
-
-    def teleopInit(self):
-        """Called right before teleop control loop starts"""
-        self.drivetrain.drive.setSafetyEnabled(True)
 
     def teleopPeriodic(self):
         """Place code here that does things as a result of operator

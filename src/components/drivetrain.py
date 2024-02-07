@@ -59,6 +59,16 @@ class Drivetrain:
             self.front_right_motor,
             self.back_right_motor,
         )
+        idle_mode = NeutralModeValue.COAST
+        self.front_left_motor.setIdleMode(idle_mode)
+        self.front_right_motor.setIdleMode(idle_mode)
+        self.back_left_motor.setIdleMode(idle_mode)
+        self.back_right_motor.setIdleMode(idle_mode)
+        self.drive.setExpiration(0.1)
+
+    def on_enable(self):
+        """Called when robot enters autonomous or teleoperated mode"""
+        self.drive.setSafetyEnabled(True)
 
     def get_mode(self) -> OctoMode:
         return self.mode
