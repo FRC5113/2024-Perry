@@ -1,22 +1,29 @@
-import wpilib
+from wpilib import MotorControllerGroup
 from wpilib.interfaces import MotorController
-from magicbot import will_reset_to
+from magicbot import tunable
 
 
 class Shooter:
+    """Component that controls the two motors that shoot the notes"""
+
     left_motor: MotorController
     right_motor: MotorController
 
-    speed = will_reset_to(0)
+    enabled = False
+    shoot_speed = tunable(1)
 
     def setup(self):
         self.right_motor.setInverted(True)
+        self.motor_group = MotorControllerGroup(self.left_motor, self.right_motor)
 
-    def spin(self, speed: float):
-        if not (-1.0 <= speed <= 1.0):
-            raise Exception(f"Improper value for speed entered: {speed}")
-        self.speed = speed
+    def enable(self):
+        self.enabled = True
+
+    def disable(self):
+        self.enabled = False
 
     def execute(self):
-        self.left_motor.set(self.speed)
-        self.right_motor.set(self.speed)
+        if self.enabled:
+            self.motor_group.set(self.speed)
+        else:
+            self.motor_group.set(0)
