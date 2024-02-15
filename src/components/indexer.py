@@ -23,7 +23,7 @@ class Indexer:
 
     def enable_feed(self):
         self.feed_enabled = True
-    
+
     def disable_feed(self):
         self.feed_enabled = False
 

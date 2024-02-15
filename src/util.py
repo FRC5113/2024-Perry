@@ -71,15 +71,30 @@ class EmptyController(MotorController):
     """Dummy class that implements wpilib MotorController.
     Only use this for testing.
     """
-    def disable(self): pass
-    def get(self): return 0
-    def getInverted(self): return False
-    def set(self, speed): pass
-    def setIdleMode(self, mode): pass
-    def setInverted(self, isInverted): pass
-    def setVoltage(self, volts): pass
-    def stopMotor(self): pass
 
+    def disable(self):
+        pass
+
+    def get(self):
+        return 0
+
+    def getInverted(self):
+        return False
+
+    def set(self, speed):
+        pass
+
+    def setIdleMode(self, mode):
+        pass
+
+    def setInverted(self, isInverted):
+        pass
+
+    def setVoltage(self, volts):
+        pass
+
+    def stopMotor(self):
+        pass
 
 
 class WPI_TalonFX(TalonFX, MotorController):

@@ -10,6 +10,7 @@ from components.intake import Intake
 from components.shooter import Shooter
 import util
 
+
 class MyRobot(MagicRobot):
     #
     # Define components here (high level first, low level last)
@@ -30,7 +31,7 @@ class MyRobot(MagicRobot):
         self.drivetrain_back_right_motor = CANSparkMax(52, BRUSHLESS)
         self.indexer_feed_left_motor = WPI_TalonSRX(0)
         self.indexer_feed_right_motor = WPI_TalonSRX(0)
-        self.indexer_belt_motor = util.EmptyController() #replace w/ talon fx
+        self.indexer_belt_motor = util.EmptyController()  # replace w/ talon fx
         self.intake_joint_left_motor = CANSparkMax(2, BRUSHLESS)
         self.intake_joint_right_motor = CANSparkMax(3, BRUSHLESS)
         self.shooter_left_motor = CANSparkMax(53, BRUSHLESS)
@@ -62,7 +63,6 @@ class MyRobot(MagicRobot):
             AND/OR ENCODERS BEFORE TESTING
             """
             self.intake.set_joint_speed = self.intake_curve(self.xbox.getRightY())
-
 
 
 if __name__ == "__main__":
