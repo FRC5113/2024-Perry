@@ -24,6 +24,6 @@ class Shooter:
 
     def execute(self):
         if self.enabled:
-            self.motor_group.set(self.speed)
+            self.motor_group.set(self.shoot_speed)
         else:
             self.motor_group.set(0)

@@ -19,7 +19,9 @@ class Indexer:
 
     def setup(self):
         self.feed_right_motor.setInverted(True)
-        self.feed_motor_group = MotorControllerGroup(self.left_motor, self.right_motor)
+        self.feed_motor_group = MotorControllerGroup(
+            self.feed_left_motor, self.feed_right_motor
+        )
 
     def enable_feed(self):
         self.feed_enabled = True

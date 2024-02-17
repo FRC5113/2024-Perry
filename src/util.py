@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Callable
 
 from wpilib.interfaces import MotorController
@@ -6,6 +7,7 @@ from phoenix6.configs.talon_fx_configs import TalonFXConfiguration
 from phoenix6.controls.duty_cycle_out import DutyCycleOut
 from phoenix6.controls.voltage_out import VoltageOut
 from phoenix6.signals import InvertedValue, NeutralModeValue
+from rev import CANSparkBase
 
 
 def clamp(value: float, min_value: float, max_value: float) -> float:

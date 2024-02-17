@@ -2,6 +2,9 @@ import wpilib
 from wpilib.interfaces import MotorController
 from wpilib.drive import DifferentialDrive
 from magicbot import will_reset_to
+from rev import CANSparkBase
+
+import util
 
 
 class Drivetrain:
@@ -16,6 +19,10 @@ class Drivetrain:
     turn = will_reset_to(0)
 
     def setup(self):
+        self.front_left_motor.setIdleMode(CANSparkBase.IdleMode.kCoast)
+        self.front_right_motor.setIdleMode(CANSparkBase.IdleMode.kCoast)
+        self.back_left_motor.setIdleMode(CANSparkBase.IdleMode.kCoast)
+        self.back_right_motor.setIdleMode(CANSparkBase.IdleMode.kCoast)
         self.left_motor_controller_group = wpilib.MotorControllerGroup(
             self.front_left_motor, self.back_left_motor
         )

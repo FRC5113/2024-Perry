@@ -29,8 +29,8 @@ class MyRobot(MagicRobot):
         self.drivetrain_front_right_motor = CANSparkMax(50, BRUSHLESS)
         self.drivetrain_back_left_motor = CANSparkMax(51, BRUSHLESS)
         self.drivetrain_back_right_motor = CANSparkMax(52, BRUSHLESS)
-        self.indexer_feed_left_motor = WPI_TalonSRX(0)
-        self.indexer_feed_right_motor = WPI_TalonSRX(0)
+        self.indexer_feed_left_motor = WPI_TalonSRX(25)
+        self.indexer_feed_right_motor = WPI_TalonSRX(41)
         self.indexer_belt_motor = util.EmptyController()  # replace w/ talon fx
         self.intake_joint_left_motor = CANSparkMax(2, BRUSHLESS)
         self.intake_joint_right_motor = CANSparkMax(3, BRUSHLESS)
@@ -40,7 +40,7 @@ class MyRobot(MagicRobot):
         self.xbox = wpilib.XboxController(0)
 
         self.drive_curve = util.cubic_curve(scalar=1, deadband=0.1, max_mag=1)
-        self.intake_curve = util.linear_curve(scalar=0.2, deadband=0.1, max_mag=1)
+        self.intake_curve = util.linear_curve(scalar=1, deadband=0.1, max_mag=1)
 
     def teleopInit(self):
         """Called right before teleop control loop starts"""
@@ -51,10 +51,10 @@ class MyRobot(MagicRobot):
         actions"""
 
         with self.consumeExceptions():
-            self.drivetrain.arcade_drive(
-                self.drive_curve(self.xbox.getLeftY()),
-                -self.drive_curve(self.xbox.getLeftX()),
-            )
+            # self.drivetrain.arcade_drive(
+            #     self.drive_curve(self.xbox.getLeftY()),
+            #     -self.drive_curve(self.xbox.getLeftX()),
+            # )
             if self.xbox.getAButton():
                 self.shooter.enable()
             else:
@@ -62,7 +62,11 @@ class MyRobot(MagicRobot):
             """VERY UNSAFE: MAKE SURE TO IMPLEMENT LIMIT SWITCHES
             AND/OR ENCODERS BEFORE TESTING
             """
-            self.intake.set_joint_speed = self.intake_curve(self.xbox.getRightY())
+            if self.xbox.getBButton():
+                self.indexer.enable_feed()
+            else:
+                self.indexer.disable_feed()
+            self.intake.set_joint_speed(self.intake_curve(self.xbox.getRightY()))
 
 
 if __name__ == "__main__":
