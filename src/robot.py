@@ -59,13 +59,14 @@ class MyRobot(MagicRobot):
                 self.shooter.enable()
             else:
                 self.shooter.disable()
-            """VERY UNSAFE: MAKE SURE TO IMPLEMENT LIMIT SWITCHES
-            AND/OR ENCODERS BEFORE TESTING
-            """
             if self.xbox.getBButton():
                 self.indexer.enable_feed()
             else:
                 self.indexer.disable_feed()
+            """VERY UNSAFE: MAKE SURE TO IMPLEMENT LIMIT SWITCHES
+            AND/OR ENCODERS IF TESTING WITH FULL INTAKE ATTACHED
+            """
+            # positive up, negative down
             self.intake.set_joint_speed(self.intake_curve(self.xbox.getRightY()))
 
 

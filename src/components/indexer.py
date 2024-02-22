@@ -13,7 +13,7 @@ class Indexer:
     belt_motor: MotorController
 
     feed_enabled = False
-    feed_speed = tunable(0.3)
+    feed_speed = tunable(-0.3)
     belt_enabled = False
     belt_speed = tunable(0.3)
 
