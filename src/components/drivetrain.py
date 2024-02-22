@@ -5,7 +5,7 @@ from wpilib import DoubleSolenoid
 from wpilib.interfaces import MotorController
 from wpilib.drive import DifferentialDrive, MecanumDrive
 from magicbot import will_reset_to
-from phoenix6.configs import talon_fx_configs
+from phoenix6.signals import NeutralModeValue
 
 import util
 
@@ -37,10 +37,10 @@ class Drivetrain:
     z_rotation: float = will_reset_to(0)
 
     def setup(self):
-        self.front_left_motor.setIdleMode(talon_fx_configs.NeutralModeValue.COAST)
-        self.front_right_motor.setIdleMode(talon_fx_configs.NeutralModeValue.COAST)
-        self.back_left_motor.setIdleMode(talon_fx_configs.NeutralModeValue.COAST)
-        self.back_right_motor.setIdleMode(talon_fx_configs.NeutralModeValue.COAST)
+        self.front_left_motor.setIdleMode(NeutralModeValue.COAST)
+        self.front_right_motor.setIdleMode(NeutralModeValue.COAST)
+        self.back_left_motor.setIdleMode(NeutralModeValue.COAST)
+        self.back_right_motor.setIdleMode(NeutralModeValue.COAST)
         self.left_motor_controller_group = wpilib.MotorControllerGroup(
             self.front_left_motor, self.back_left_motor
         )
