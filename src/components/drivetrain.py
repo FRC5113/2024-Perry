@@ -84,6 +84,7 @@ class Drivetrain:
     def is_in_correct_mode(self) -> bool:
         expected = self.get_expected_solenoid_value()
         if self.solenoid.get() != expected:
+            # assumes MagicRobot runs at 50Hz (likely incorrect)
             self.buffer = int(self.delay_seconds * 50)
             return False
         return True
