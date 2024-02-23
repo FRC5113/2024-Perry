@@ -1,6 +1,6 @@
 from wpilib import MotorControllerGroup
 from wpilib.interfaces import MotorController
-from magicbot import tunable
+from magicbot import tunable, will_reset_to
 
 
 class Indexer:
@@ -12,10 +12,10 @@ class Indexer:
     feed_right_motor: MotorController
     belt_motor: MotorController
 
-    feed_enabled = False
+    feed_enabled = will_reset_to(False)
     feed_speed = tunable(-0.3)
-    belt_enabled = False
-    belt_speed = tunable(0.3)
+    belt_enabled = will_reset_to(False)
+    belt_speed = -0.1
 
     def setup(self):
         self.feed_right_motor.setInverted(True)
@@ -28,6 +28,9 @@ class Indexer:
 
     def disable_feed(self):
         self.feed_enabled = False
+
+    def set_belt_speed(self, speed: float):
+        self.belt_speed = speed
 
     def enable_belt(self):
         self.belt_enabled = True

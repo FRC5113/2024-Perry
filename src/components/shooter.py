@@ -10,7 +10,7 @@ class Shooter:
     right_motor: MotorController
 
     enabled = False
-    shoot_speed = tunable(1)
+    speed = tunable(1)
 
     def setup(self):
         self.right_motor.setInverted(True)
@@ -24,6 +24,6 @@ class Shooter:
 
     def execute(self):
         if self.enabled:
-            self.motor_group.set(self.shoot_speed)
+            self.motor_group.set(self.speed)
         else:
             self.motor_group.set(0)
