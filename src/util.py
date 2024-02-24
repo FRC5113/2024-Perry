@@ -15,6 +15,24 @@ def clamp(value: float, min_value: float, max_value: float) -> float:
     return max(min(value, max_value), min_value)
 
 
+def cyclic_distance(a: float, b: float, max_value: float) -> float:
+    """Calculates distance between two values (`a` and `b`) over a
+    cyclic space. This is useful for things like encoders
+    """
+    return min(abs(a - b), max_value - abs(a - b))
+
+
+def cyclic_contains(value: float, a: float, b: float, tolerance: float = 0.001) -> bool:
+    """Determines if a value is between two bounds (`a` and `b`) over a
+    cyclic space. This assumes that the two bounds are less than half
+    a rotation apart in the real world.
+    """
+    return (
+        cyclic_distance(value, a) + cyclic_distance(value, b)
+        <= cyclic_distance(a, b) + tolerance
+    )
+
+
 def curve(
     mapping: Callable[[float], float], offset: float, deadband: float, max_mag: float
 ) -> Callable[[float], float]:

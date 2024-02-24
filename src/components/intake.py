@@ -6,6 +6,18 @@ from magicbot import tunable, will_reset_to
 class Intake:
     """Component that controls the two motors that power the lifting
     and lowering of the intake module
+
+    Injected Variables:
+    left_motor -- MotorController of left side
+    right_motor -- MotorController of right side
+    left_encoder -- DutyCycleEncoder of left side
+    right_encoder -- DutyCycleEncoder of right side
+    left_encoder_offset -- Subtracted from left encoder measurements
+    right_encoder_offset -- Subtracted from right encoder measurements
+    encoder_error_tolerance -- Maximum amount left and right encoder
+        values are allowed to differ
+    lower_limit -- intake not allowed to drop below this (corresponds to down)
+    upper_limit -- intake not allowed to raise above this (corresponds to up)
     """
 
     left_motor: MotorController
@@ -14,7 +26,7 @@ class Intake:
     right_encoder: DutyCycleEncoder
     left_encoder_offset: float
     right_encoder_offset: float
-    encoder_error_threshold: float
+    encoder_error_tolerance: float
     lower_limit: float
     upper_limit: float
 
@@ -32,16 +44,21 @@ class Intake:
         If the difference between the two is greater than the given
         threshold, this function will return `None`, signifying an
         error. Call this function every loop to update the position.
+        Position zero should be when the intake is on the ground.
         """
-        a = self.left_encoder.getAbsolutePosition() - self.left_encoder_offset
+        a = (
+            1 - (self.left_encoder.getAbsolutePosition() - self.left_encoder_offset)
+        ) % 1
         # the position is negated because the right encoder is reversed
-        b = 1 - self.right_encoder.getAbsolutePosition() - self.right_encoder_offset
+        b = self.right_encoder.getAbsolutePosition() - self.right_encoder_offset
+        # for testing with one encoder (REMOVE)
+        b = a
         position = None
-        if abs(a - b) <= self.encoder_error_threshold:
+        if abs(a - b) <= self.encoder_error_tolerance:
             position = (a + b) / 2
         if (
-            abs(a - b + 1) <= self.encoder_error_threshold
-            or abs(a - b + 1) < self.encoder_error_threshold
+            abs(a - b + 1) <= self.encoder_error_tolerance
+            or abs(a - b + 1) < self.encoder_error_tolerance
         ):
             position = (a + b) / 2 - 0.5
             if position < 0:

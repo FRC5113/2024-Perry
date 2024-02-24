@@ -35,12 +35,13 @@ class MyRobot(MagicRobot):
         self.intake_left_motor = CANSparkMax(2, BRUSHLESS)
         self.intake_right_motor = CANSparkMax(3, BRUSHLESS)
         self.intake_left_encoder = DutyCycleEncoder(DigitalInput(0))
-        self.intake_right_encoder = DutyCycleEncoder(DigitalInput(1))
-        self.intake_left_encoder_offset = 0
-        self.intake_right_encoder_offset = 0
+        self.intake_right_encoder = DutyCycleEncoder(DigitalInput(1))  # CHANGE
+        self.intake_left_encoder_offset = 0.0
+        self.intake_right_encoder_offset = 0.0
+        self.intake_encoder_error_tolerance = 0.0
         self.intake_encoder_error_threshold = 0.1
-        self.intake_lower_limit = 0
-        self.intake_upper_limit = 1
+        self.intake_lower_limit = 0.0
+        self.intake_upper_limit = 0.4
         self.shooter_left_motor = util.EmptyController()  # CANSparkMax(53, BRUSHLESS)
         self.shooter_right_motor = util.EmptyController()  # CANSparkMax(54, BRUSHLESS)
 
