@@ -21,7 +21,7 @@ class Intake:
     speed = will_reset_to(0)
     position = 0
     error_flag = False
-    suppress_errors = False
+    suppress_errors = True
 
     def setup(self):
         self.right_motor.setInverted(True)
@@ -58,12 +58,12 @@ class Intake:
             """this assumes that an increase in position corresponds
             with a positive speed, which is not at all guaranteed
             """
-            if self.speed < 0 and self.position <= self.lower_limit:
-                self.motor_group.set(0)
-                return
-            if self.speed > 0 and self.position >= self.upper_limit:
-                self.motor_group.set(0)
-                return
+            # if self.speed < 0 and self.position <= self.lower_limit:
+            #     self.motor_group.set(0)
+            #     return
+            # if self.speed > 0 and self.position >= self.upper_limit:
+            #     self.motor_group.set(0)
+            #     return
             self.motor_group.set(self.speed)
         else:
             self.motor_group.set(0)
