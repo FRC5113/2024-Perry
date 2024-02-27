@@ -15,7 +15,7 @@ def clamp(value: float, min_value: float, max_value: float) -> float:
     return max(min(value, max_value), min_value)
 
 
-def cyclic_distance(a: float, b: float, max_value: float) -> float:
+def cyclic_distance(a: float, b: float, max_value: float = 1.0) -> float:
     """Calculates distance between two values (`a` and `b`) over a
     cyclic space. This is useful for things like encoders
     """
@@ -31,6 +31,11 @@ def cyclic_contains(value: float, a: float, b: float, tolerance: float = 0.001) 
         cyclic_distance(value, a) + cyclic_distance(value, b)
         <= cyclic_distance(a, b) + tolerance
     )
+
+def cyclic_average(a: float, b: float) -> float:
+    if abs(a - b) <= 0.5:
+        return (a + b) / 2.0
+    return ((a + b) / 2.0 + 0.5) % 1
 
 
 def curve(

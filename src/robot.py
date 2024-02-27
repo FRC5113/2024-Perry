@@ -29,26 +29,26 @@ class MyRobot(MagicRobot):
         self.drivetrain_front_right_motor = CANSparkMax(50, BRUSHLESS)
         self.drivetrain_back_left_motor = CANSparkMax(51, BRUSHLESS)
         self.drivetrain_back_right_motor = CANSparkMax(52, BRUSHLESS)
-        self.indexer_feed_left_motor = util.EmptyController()  # WPI_TalonSRX(25)
-        self.indexer_feed_right_motor = util.EmptyController()  # WPI_TalonSRX(41)
-        self.indexer_belt_motor = util.EmptyController()  # WPI_TalonFX(6)
+        self.indexer_feed_left_motor = WPI_TalonSRX(25)
+        self.indexer_feed_right_motor = WPI_TalonSRX(41)
+        self.indexer_belt_motor = util.WPI_TalonFX(6)
         self.intake_left_motor = CANSparkMax(2, BRUSHLESS)
         self.intake_right_motor = CANSparkMax(3, BRUSHLESS)
         self.intake_left_encoder = DutyCycleEncoder(DigitalInput(0))
-        self.intake_right_encoder = DutyCycleEncoder(DigitalInput(1))  # CHANGE
-        self.intake_left_encoder_offset = 0.0
-        self.intake_right_encoder_offset = 0.0
-        self.intake_encoder_error_tolerance = 0.0
-        self.intake_encoder_error_threshold = 0.1
+        self.intake_right_encoder = DutyCycleEncoder(DigitalInput(1))
+        self.intake_left_encoder_offset = 0.08
+        self.intake_right_encoder_offset = 0.80
+        self.intake_encoder_error_tolerance = 0.1
         self.intake_lower_limit = 0.0
-        self.intake_upper_limit = 0.4
-        self.shooter_left_motor = util.EmptyController()  # CANSparkMax(53, BRUSHLESS)
-        self.shooter_right_motor = util.EmptyController()  # CANSparkMax(54, BRUSHLESS)
+        self.intake_upper_limit = 0.39
+        self.shooter_left_motor = CANSparkMax(53, BRUSHLESS)
+        self.shooter_right_motor = CANSparkMax(54, BRUSHLESS)
 
         self.xbox = wpilib.XboxController(0)
 
-        self.drive_curve = util.cubic_curve(scalar=0.3, deadband=0.1, max_mag=1)
-        self.intake_curve = util.linear_curve(scalar=0.05, deadband=0.1, max_mag=1)
+        self.drive_curve = util.cubic_curve(scalar=0.5, deadband=0.1, max_mag=1)
+        self.intake_curve = util.linear_curve(scalar=0.05
+                                              , deadband=0.1, max_mag=1)
 
     def teleopInit(self):
         """Called right before teleop control loop starts"""
@@ -83,10 +83,38 @@ class MyRobot(MagicRobot):
             AND/OR ENCODERS IF TESTING WITH FULL INTAKE ATTACHED
             """
             self.intake.set_speed(self.intake_curve(self.xbox.getRightY()))
+            if self.xbox.getLeftBumper():
+                self.intake.down()
+            if self.xbox.getRightBumper():
+                self.intake.up()
+
+    def testPeriodic(self):
+        self.drivetrain.test_right()
 
     @feedback
-    def get_encoder_pos(self):
-        return self.intake.get_position()
+    def get_intake_pos(self):
+        position = self.intake.get_position()
+        if position is not None:
+            return position
+        return 0
+    
+    @feedback
+    def get_intake_left_pos(self):
+        return self.intake.get_left_position()
+    
+    @feedback
+    def get_intake_right_pos(self):
+        return self.intake.get_right_position()
+    
+    @feedback
+    def get_upper_limit(self):
+        return self.intake.is_past_upper_limit()
+    
+    @feedback
+    def get_lower_limit(self):
+        return self.intake.is_past_lower_limit()
+    
+
 
 
 if __name__ == "__main__":
