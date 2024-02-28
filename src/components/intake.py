@@ -49,7 +49,7 @@ class Intake:
 
         self.rotatePID = controller.PIDController(self.rotate_kP, 0, 0)
         self.rotatePID.setTolerance(0.05)
-        self.rotatePID.enableContinuousInput(0,1)
+        self.rotatePID.enableContinuousInput(0, 1)
 
         """This controller should only need an integral term because
         the error corresponds to a change in velocity, so velocity
@@ -65,8 +65,7 @@ class Intake:
             self.rotatePID.setSetpoint(0.05)
         pidOutput = self.rotatePID.calculate(self.get_position())
         print(pidOutput, self.rotatePID.getSetpoint(), self.get_position())
-        self.set_speed(util.clamp(pidOutput, -self.max_pid_mag, self.max_pid_mag))        
-
+        self.set_speed(util.clamp(pidOutput, -self.max_pid_mag, self.max_pid_mag))
 
     def down(self):
         if self.get_position() is None:
@@ -76,13 +75,15 @@ class Intake:
             self.rotatePID.setSetpoint(0.35)
         pidOutput = self.rotatePID.calculate(self.get_position())
         print("DOWN", pidOutput, self.rotatePID.getSetpoint(), self.get_position())
-        self.set_speed(util.clamp(pidOutput, -self.max_pid_mag, self.max_pid_mag))   
+        self.set_speed(util.clamp(pidOutput, -self.max_pid_mag, self.max_pid_mag))
 
     def get_left_position(self) -> float:
         return (self.left_encoder.getAbsolutePosition() - self.left_encoder_offset) % 1
-    
+
     def get_right_position(self) -> float:
-        return (self.right_encoder.getAbsolutePosition() - self.right_encoder_offset) % 1
+        return (
+            self.right_encoder.getAbsolutePosition() - self.right_encoder_offset
+        ) % 1
 
     def get_position(self) -> float | None:
         """Returns the average position between the two encoders.
@@ -104,7 +105,7 @@ class Intake:
             if position < 0:
                 position += 1
         return position
-    
+
     def get_speed(self) -> float | None:
         """Returns speed of intake in rotations/second"""
         if self.position is None:
@@ -116,13 +117,12 @@ class Intake:
             return (1 + speed) * 50
         return speed * 50
 
-    
     def is_past_lower_limit(self) -> bool:
         if self.position is None:
             return True
         midpoint = (util.cyclic_average(self.lower_limit, self.upper_limit) + 0.5) % 1
         return util.cyclic_contains(self.position, self.lower_limit, midpoint)
-    
+
     def is_past_upper_limit(self) -> bool:
         if self.position is None:
             return True

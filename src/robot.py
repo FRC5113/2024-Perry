@@ -47,8 +47,7 @@ class MyRobot(MagicRobot):
         self.xbox = wpilib.XboxController(0)
 
         self.drive_curve = util.cubic_curve(scalar=0.5, deadband=0.1, max_mag=1)
-        self.intake_curve = util.linear_curve(scalar=0.2
-                                              , deadband=0.1, max_mag=1)
+        self.intake_curve = util.linear_curve(scalar=0.2, deadband=0.1, max_mag=1)
 
     def teleopInit(self):
         """Called right before teleop control loop starts"""
@@ -97,24 +96,22 @@ class MyRobot(MagicRobot):
         if position is not None:
             return position
         return 0
-    
+
     @feedback
     def get_intake_left_pos(self):
         return self.intake.get_left_position()
-    
+
     @feedback
     def get_intake_right_pos(self):
         return self.intake.get_right_position()
-    
+
     @feedback
     def get_upper_limit(self):
         return self.intake.is_past_upper_limit()
-    
+
     @feedback
     def get_lower_limit(self):
         return self.intake.is_past_lower_limit()
-    
-
 
 
 if __name__ == "__main__":

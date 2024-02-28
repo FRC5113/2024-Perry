@@ -32,6 +32,7 @@ def cyclic_contains(value: float, a: float, b: float, tolerance: float = 0.001) 
         <= cyclic_distance(a, b) + tolerance
     )
 
+
 def cyclic_average(a: float, b: float) -> float:
     if abs(a - b) <= 0.5:
         return (a + b) / 2.0
