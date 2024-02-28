@@ -33,17 +33,29 @@ class Intake:
     lower_limit: float
     upper_limit: float
 
-    rotatePID: controller.PIDController = controller.PIDController(0.5, 0, 0)
+    rotate_kP = tunable(0.5)
+    speed_kI = tunable(0.03)
 
     speed = will_reset_to(0)
     position = 0
+    last_position = 0
     error_flag = False
+
+    max_pid_mag = tunable(0.2)
 
     def setup(self):
         self.right_motor.setInverted(True)
         self.motor_group = MotorControllerGroup(self.left_motor, self.right_motor)
+
+        self.rotatePID = controller.PIDController(self.rotate_kP, 0, 0)
         self.rotatePID.setTolerance(0.05)
         self.rotatePID.enableContinuousInput(0,1)
+
+        """This controller should only need an integral term because
+        the error corresponds to a change in velocity, so velocity
+        corresponds to the integral of error.
+        """
+        self.speedPID = controller.PIDController(0, self.speed_kI, 0)
 
     def up(self):
         if self.get_position() is None:
@@ -53,7 +65,7 @@ class Intake:
             self.rotatePID.setSetpoint(0.05)
         pidOutput = self.rotatePID.calculate(self.get_position())
         print(pidOutput, self.rotatePID.getSetpoint(), self.get_position())
-        self.set_speed(util.clamp(pidOutput, -.1, .1))        
+        self.set_speed(util.clamp(pidOutput, -self.max_pid_mag, self.max_pid_mag))        
 
 
     def down(self):
@@ -64,7 +76,7 @@ class Intake:
             self.rotatePID.setSetpoint(0.35)
         pidOutput = self.rotatePID.calculate(self.get_position())
         print("DOWN", pidOutput, self.rotatePID.getSetpoint(), self.get_position())
-        self.set_speed(util.clamp(pidOutput, -.1, .1))   
+        self.set_speed(util.clamp(pidOutput, -self.max_pid_mag, self.max_pid_mag))   
 
     def get_left_position(self) -> float:
         return (self.left_encoder.getAbsolutePosition() - self.left_encoder_offset) % 1
@@ -93,6 +105,18 @@ class Intake:
                 position += 1
         return position
     
+    def get_speed(self) -> float | None:
+        """Returns speed of intake in rotations/second"""
+        if self.position is None:
+            return None
+        speed = self.position - self.last_position
+        if speed > 0.5:
+            return -(1 - speed) * 50
+        if speed < -0.5:
+            return (1 + speed) * 50
+        return speed * 50
+
+    
     def is_past_lower_limit(self) -> bool:
         if self.position is None:
             return True
@@ -109,8 +133,23 @@ class Intake:
         assert -1.0 < speed < 1.0, f"Improper intake joint speed: {speed}"
         self.speed = speed
 
+    def set_speed_pid(self, speed: float):
+        if speed == 0:
+            self.set_speed(0)
+            return
+        measurement = self.get_speed()
+        if measurement is None:
+            return
+        self.speedPID.setSetpoint(speed)
+        output = self.speedPID.calculate(measurement)
+        print(output)
+        self.set_speed(output)
+
     def execute(self):
+        self.last_position = self.position
         self.position = self.get_position()
+        self.rotatePID.setP(self.rotate_kP)
+        self.speedPID.setI(self.speed_kI)
         if self.position is not None:
             if self.speed > 0 and self.is_past_lower_limit():
                 self.motor_group.set(0)

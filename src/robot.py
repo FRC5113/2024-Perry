@@ -47,7 +47,7 @@ class MyRobot(MagicRobot):
         self.xbox = wpilib.XboxController(0)
 
         self.drive_curve = util.cubic_curve(scalar=0.5, deadband=0.1, max_mag=1)
-        self.intake_curve = util.linear_curve(scalar=0.05
+        self.intake_curve = util.linear_curve(scalar=0.2
                                               , deadband=0.1, max_mag=1)
 
     def teleopInit(self):
@@ -82,7 +82,7 @@ class MyRobot(MagicRobot):
             """VERY UNSAFE: MAKE SURE TO IMPLEMENT LIMIT SWITCHES
             AND/OR ENCODERS IF TESTING WITH FULL INTAKE ATTACHED
             """
-            self.intake.set_speed(self.intake_curve(self.xbox.getRightY()))
+            self.intake.set_speed_pid(self.intake_curve(self.xbox.getRightY()))
             if self.xbox.getLeftBumper():
                 self.intake.down()
             if self.xbox.getRightBumper():
