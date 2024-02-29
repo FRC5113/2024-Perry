@@ -27,6 +27,7 @@ Some notes:
 * Be sure to account for any exceptions that could result from operator input
 * Never interact with operator input or networktables in components themselves: this code should only be contained within `teleopPeriodic()`
 * Only interact with hardware in the `execute()` method of components
+* Keep robot.py clean: this should only contain variables to be injected into components in `createObjects()` and input handling in `teleopPeriodic()`
 
 ## Github Stylistic Conventions
 * Commit messages should be written in the imperative mood, like a command (eg. "add Philosophy.md" rather than "added Philosophy.md" or "Philosophy.md is added")

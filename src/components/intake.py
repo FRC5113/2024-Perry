@@ -1,7 +1,7 @@
 from wpilib import MotorControllerGroup, DutyCycleEncoder
 from wpilib.interfaces import MotorController
-from magicbot import tunable, will_reset_to
-from wpimath import controller
+from magicbot import tunable, will_reset_to, feedback
+from wpimath import controller, units
 
 import util
 
@@ -21,6 +21,11 @@ class Intake:
         values are allowed to differ
     lower_limit -- intake not allowed to drop below this (corresponds to down)
     upper_limit -- intake not allowed to raise above this (corresponds to up)
+    horizontal_offset -- offset between what is considered zero
+    rotations and the rotations it would take for the intake to be
+    horizontal
+    feedforward -- feedforward controller that assists in finding the 
+    correct voltage for a desired velocity and acceleration
     """
 
     left_motor: MotorController
@@ -32,14 +37,16 @@ class Intake:
     encoder_error_tolerance: float
     lower_limit: float
     upper_limit: float
+    horizontal_offset: float
+    feedforward: controller.ArmFeedforward
 
     rotate_kP = tunable(0.5)
-    speed_kI = tunable(0.03)
 
     speed = will_reset_to(0)
+    voltage = 0
     position = 0
     last_position = 0
-    error_flag = False
+    using_voltage = True
 
     max_pid_mag = tunable(0.2)
 
@@ -51,35 +58,47 @@ class Intake:
         self.rotatePID.setTolerance(0.05)
         self.rotatePID.enableContinuousInput(0, 1)
 
-        """This controller should only need an integral term because
-        the error corresponds to a change in velocity, so velocity
-        corresponds to the integral of error.
-        """
-        self.speedPID = controller.PIDController(0, self.speed_kI, 0)
-
     def up(self):
-        if self.get_position() is None:
+        if self.position is None:
             print("PIDing FAILED - misaligned")
             return
         if self.rotatePID.getSetpoint() != 0.05:
             self.rotatePID.setSetpoint(0.05)
         pidOutput = self.rotatePID.calculate(self.get_position())
         print(pidOutput, self.rotatePID.getSetpoint(), self.get_position())
-        self.set_speed(util.clamp(pidOutput, -self.max_pid_mag, self.max_pid_mag))
+        self.set_motor_speed(util.clamp(pidOutput, -self.max_pid_mag, self.max_pid_mag))
 
     def down(self):
-        if self.get_position() is None:
+        if self.position is None:
             print("PIDing FAILED - misaligned")
             return
         if self.rotatePID.getSetpoint() != 0.35:
             self.rotatePID.setSetpoint(0.35)
         pidOutput = self.rotatePID.calculate(self.get_position())
         print("DOWN", pidOutput, self.rotatePID.getSetpoint(), self.get_position())
-        self.set_speed(util.clamp(pidOutput, -self.max_pid_mag, self.max_pid_mag))
+        self.set_motor_speed(util.clamp(pidOutput, -self.max_pid_mag, self.max_pid_mag))
 
+    def get_radians(self) -> units.radians | None:
+        """Returns the position of the intake such that 0 radians is 
+        when the center of mass is directly in front of the axel and
+        pi/2 radians is when the canter of mass is directly above the
+        axel
+        """
+        if self.position is None:
+            return None
+        return units.rotationsToRadians(-(self.position - self.horizontal_offset))
+    
+    def convert_to_rotations(self, radians: units.radians) -> units.turns:
+        """Converts radians to rotations with respect to the intake
+        offsets
+        """
+        return -units.radiansToRotations(radians) + self.horizontal_offset
+
+    @feedback
     def get_left_position(self) -> float:
         return (self.left_encoder.getAbsolutePosition() - self.left_encoder_offset) % 1
 
+    @feedback
     def get_right_position(self) -> float:
         return (
             self.right_encoder.getAbsolutePosition() - self.right_encoder_offset
@@ -104,11 +123,20 @@ class Intake:
             position = (a + b) / 2 - 0.5
             if position < 0:
                 position += 1
+        self.position = position
         return position
+    
+    @feedback
+    def get_nt_position(self) -> float:
+        self.get_position()
+        if self.position is None:
+            return 0
+        return self.position
 
     def get_speed(self) -> float | None:
-        """Returns speed of intake in rotations/second"""
-        if self.position is None:
+        """Returns speed of intake in rotations/second (via encoders)"""
+        self.get_position()
+        if self.position is None or self.last_position is None:
             return None
         speed = self.position - self.last_position
         if speed > 0.5:
@@ -116,48 +144,69 @@ class Intake:
         if speed < -0.5:
             return (1 + speed) * 50
         return speed * 50
+    
+    @feedback
+    def get_nt_speed(self) -> float:
+        if self.position is None:
+            return 0
+        return self.get_speed()
+    
+    def get_voltage(self) -> float:
+        return self.voltage
 
     def is_past_lower_limit(self) -> bool:
+        self.get_position()
         if self.position is None:
             return True
         midpoint = (util.cyclic_average(self.lower_limit, self.upper_limit) + 0.5) % 1
         return util.cyclic_contains(self.position, self.lower_limit, midpoint)
 
     def is_past_upper_limit(self) -> bool:
+        self.get_position()
         if self.position is None:
             return True
         midpoint = (util.cyclic_average(self.lower_limit, self.upper_limit) + 0.5) % 1
         return util.cyclic_contains(self.position, self.upper_limit, midpoint)
 
-    def set_speed(self, speed: float):
+    def set_motor_speed(self, speed: float):
         assert -1.0 < speed < 1.0, f"Improper intake joint speed: {speed}"
         self.speed = speed
+    
+    def set_voltage(self, voltage: float) -> float:
+        self.voltage = voltage
+        return voltage
 
-    def set_speed_pid(self, speed: float):
-        if speed == 0:
-            self.set_speed(0)
-            return
-        measurement = self.get_speed()
-        if measurement is None:
-            return
-        self.speedPID.setSetpoint(speed)
-        output = self.speedPID.calculate(measurement)
-        print(output)
-        self.set_speed(output)
+    def set_speed(self, velocity: units.turns_per_second, acceleration: units.turns_per_second_squared = 0) -> float:
+        """Sets the motor voltage to match the supplied angular speed
+        (rotations/second) and angular acceleration (rotations/second^2)
+        using a feedforward controller. Returns the set voltage.
+        """
+        if self.position is None:
+            return 0
+        return self.set_voltage(self.feedforward.calculate(self.get_radians(), velocity, acceleration))
 
     def execute(self):
         self.last_position = self.position
-        self.position = self.get_position()
         self.rotatePID.setP(self.rotate_kP)
-        self.speedPID.setI(self.speed_kI)
         if self.position is not None:
-            if self.speed > 0 and self.is_past_lower_limit():
+            if (self.speed > 0 or self.voltage > 0) and self.is_past_lower_limit():
                 self.motor_group.set(0)
                 return
-            if self.speed < 0 and self.is_past_upper_limit():
+            if (self.speed < 0 or self.voltage < 0) and self.is_past_upper_limit():
                 self.motor_group.set(0)
                 return
-            self.motor_group.set(self.speed)
+            if self.voltage != 0:
+                self.motor_group.setVoltage(self.voltage)
+            else:
+                self.motor_group.set(self.speed)
         else:
             self.motor_group.set(0)
             print("ERROR: INTAKE ENCODERS MISALIGNED")
+
+    @feedback
+    def get_upper_limit(self):
+        return self.is_past_upper_limit()
+
+    @feedback
+    def get_lower_limit(self):
+        return self.is_past_lower_limit()
