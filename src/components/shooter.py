@@ -1,29 +1,59 @@
 from wpilib import MotorControllerGroup
 from wpilib.interfaces import MotorController
-from magicbot import tunable
+from magicbot import tunable, will_reset_to
 
 
 class Shooter:
     """Component that controls the two motors that shoot the notes"""
 
-    left_motor: MotorController
-    right_motor: MotorController
+    belt_motor: MotorController
+    feed_left_motor: MotorController
+    feed_right_motor: MotorController
+    shooter_left_motor: MotorController
+    shooter_right_motor: MotorController
 
-    enabled = False
-    speed = tunable(1)
+    belt_intaking = will_reset_to(False)
+    belt_ejecting = will_reset_to(False)
+    belt_speed = tunable(0.3)
+    feed_enabled = will_reset_to(False)
+    feed_speed = tunable(-0.3)
+    shooter_enabled = will_reset_to(False)
+    shooter_speed = tunable(1)
 
     def setup(self):
-        self.right_motor.setInverted(True)
-        self.motor_group = MotorControllerGroup(self.left_motor, self.right_motor)
+        self.feed_right_motor.setInverted(True)
+        self.feed_motor_group = MotorControllerGroup(self.feed_left_motor, self.feed_right_motor)
+        self.shooter_right_motor.setInverted(True)
+        self.shooter_motor_group = MotorControllerGroup(self.shooter_left_motor, self.shooter_right_motor)
 
-    def enable(self):
-        self.enabled = True
+    def intake(self):
+        self.belt_intaking = True
 
-    def disable(self):
-        self.enabled = False
+    def eject(self):
+        self.belt_ejecting = True
+
+    def shoot(self):
+        self.shooter_enabled = True
+
+    def feed(self):
+        self.feed_enabled = True
 
     def execute(self):
-        if self.enabled:
-            self.motor_group.set(self.speed)
+        if self.belt_intaking and self.belt_ejecting:
+            self.belt_intaking = False
+        if self.belt_intaking:
+            self.belt_motor.set(self.belt_speed)
+        elif self.belt_ejecting:
+            self.belt_motor.set(-self.belt_speed)
         else:
-            self.motor_group.set(0)
+            self.belt_motor.set(0)
+
+        if self.feed_enabled:
+            self.feed_motor_group.set(self.feed_speed)
+        else:
+            self.feed_motor_group.set(0)
+
+        if self.shooter_enabled:
+            self.shooter_motor_group.set(self.shooter_speed)
+        else:
+            self.shooter_motor_group.set(0)
