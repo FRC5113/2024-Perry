@@ -9,6 +9,7 @@ from magicbot import MagicRobot, tunable, feedback
 from components.drivetrain import Drivetrain
 from components.intake import Intake
 from components.shooter import Shooter
+from oi import OI
 import util
 
 
@@ -30,10 +31,6 @@ class MyRobot(MagicRobot):
         self.drivetrain_back_left_motor = CANSparkMax(51, BRUSHLESS)
         self.drivetrain_back_right_motor = CANSparkMax(52, BRUSHLESS)
 
-        self.shooter_belt_motor = CANSparkMax(0, BRUSHLESS)
-        self.shooter_feed_left_motor = WPI_TalonSRX(25)
-        self.shooter_feed_right_motor = WPI_TalonSRX(41)
-
         self.intake_joint_left_motor = CANSparkMax(2, BRUSHLESS)
         self.intake_joint_right_motor = CANSparkMax(3, BRUSHLESS)
         self.intake_left_encoder = DutyCycleEncoder(DigitalInput(0))
@@ -46,83 +43,49 @@ class MyRobot(MagicRobot):
         self.intake_horizontal_offset = 0.27 #fix
         self.intake_feedforward = controller.ArmFeedforward(0.24, 0.42, 0.78, 0.01)
         self.intake_belt_motor = util.WPI_TalonFX(6)
-        self.intake_indexer_motor = CANSparkMax(55, BRUSHLESS)
 
+        self.shooter_belt_motor = CANSparkMax(55, BRUSHLESS)
+        self.shooter_feed_left_motor = WPI_TalonSRX(25)
+        self.shooter_feed_right_motor = WPI_TalonSRX(41)
         self.shooter_shooter_left_motor = CANSparkMax(53, BRUSHLESS)
         self.shooter_shooter_right_motor = CANSparkMax(54, BRUSHLESS)
 
-        """Initialize input objects"""
-        self.xbox = wpilib.XboxController(0)
-        self.joystick = wpilib.Joystick(1)
-        self.drive_curve = util.cubic_curve(scalar=0.5, deadband=0.1, max_mag=1)
-        self.intake_curve = util.linear_curve(scalar=0.05, deadband=0.1, max_mag=1)
+        self.oi = OI()
+
+        self.drive_curve = util.cubic_curve(scalar=1, deadband=0.1, max_mag=1)
+        self.turn_curve = util.cubic_curve(scalar=0.75, deadband=0.1, max_mag=1)
+        # self.intake_curve = util.linear_curve(scalar=0.05, deadband=0.1, max_mag=1)
 
     def teleopInit(self):
-        """Called right before teleop control loop starts"""
         self.drivetrain.drive.setSafetyEnabled(True)
 
     def teleopPeriodic(self):
-        """Place code here that does things as a result of operator
-        actions"""
-
-        # with self.consumeExceptions():
-        #     self.drivetrain.arcade_drive(
-        #         self.drive_curve(self.xbox.getLeftY()),
-        #         -self.drive_curve(self.xbox.getLeftX()),
-        #     )
-        #     if self.xbox.getAButton():
-        #         self.shooter.enable()
-        #     else:
-        #         self.shooter.disable()
-        #     if self.xbox.getBButton():
-        #         self.indexer.enable_feed()
-        #     else:
-        #         self.indexer.disable_feed()
-
-        #     if self.xbox.getXButton():
-        #         self.indexer.set_belt_speed(-self.belt_speed)
-        #         self.indexer.enable_belt()
-
-        #     if self.xbox.getYButton():
-        #         self.indexer.set_belt_speed(self.belt_speed)
-        #         self.indexer.enable_belt()
-        #     """VERY UNSAFE: MAKE SURE TO IMPLEMENT LIMIT SWITCHES
-        #     AND/OR ENCODERS IF TESTING WITH FULL INTAKE ATTACHED
-        #     """
-        #     self.intake.set_motor_speed(self.intake_curve(self.xbox.getRightY()))
-        #     if self.xbox.getLeftBumper():
-        #         self.intake.down()
-        #     if self.xbox.getRightBumper():
-        #         self.intake.up()
         with self.consumeExceptions():
             self.drivetrain.arcade_drive(
-                self.drive_curve(self.joystick.getY()),
-                -self.drive_curve(self.joystick.getX()),
+                self.drive_curve(self.oi.drive_forward()),
+                self.turn_curve(self.oi.drive_turn()),
             )
-            if self.joystick.getRawButton(7):
-                self.shooter.shoot()
-            if self.joystick.getRawButton(8):
+            if self.oi.shoot():
+                self.shooter.intake()
                 self.shooter.feed()
-            if self.joystick.getRawButton(9):
+                self.shooter.shoot()
+            # if self.oi.feed():
+            if self.oi.do_intake():
+                self.shooter.feed()
                 self.intake.intake()
                 self.shooter.intake()
-            if self.joystick.getRawButton(10):
-                self.intake.eject()
-                self.shooter.eject()
-            """VERY UNSAFE: MAKE SURE TO IMPLEMENT LIMIT SWITCHES
-            AND/OR ENCODERS IF TESTING WITH FULL INTAKE ATTACHED
-            """
-            # self.intake.set_motor_speed(self.intake_curve(self.xbox.getRightY()))
-            if self.joystick.getRawButton(3):
-                # self.intake.set_motor_speed(self.intake_curve(1))
-                self.intake.set_joint_speed(0.2)
-            if self.joystick.getRawButton(4):
-                # self.intake.set_motor_speed(self.intake_curve(-1))
-                self.intake.set_joint_speed(-0.2)
-            if self.joystick.getRawButton(11):
-                self.intake.set_index_speed(0.25)
-            if self.joystick.getRawButton(12):
-                self.intake.set_index_speed(-0.25)
+            # if self.oi.eject():
+            #     self.intake.eject()
+            #     self.shooter.eject()
+            if self.oi.intake_down():
+                # self.intake.set_joint_setpoint(self.intake_upper_limit)
+                self.intake.set_joint_voltage(1)
+                # self.intake.set_index_speed(0.25)
+            if self.oi.intake_up():
+                self.intake.set_joint_voltage(-0.5)
+                # self.intake.set_joint_setpoint(self.intake_lower_limit)
+                # self.intake.set_index_speed(-0.25)
+            
 
     def testInit(self):
         self.intake.set_joint_voltage(0.001)
@@ -142,6 +105,6 @@ class MyRobot(MagicRobot):
         self.intake.execute()
         print(voltage - 5 * delta)
 
-
+    
 if __name__ == "__main__":
     wpilib.run(MyRobot)

@@ -41,56 +41,25 @@ class Intake:
     upper_limit: float
     horizontal_offset: float
     feedforward: controller.ArmFeedforward
-
     belt_motor: MotorController
 
-    indexer_motor: MotorController
-
-    rotate_kP = tunable(0.5)
-    joint_speed = will_reset_to(0)
-    joint_voltage = 0 # make resettable after testing
+    joint_kP = tunable(0.25)
+    joint_voltage = will_reset_to(0)
     position = 0
     last_position = 0
     speed_filter = filter.MedianFilter(10)
     max_pid_mag = tunable(0.2)
-
     belt_intaking = will_reset_to(False)
     belt_ejecting = will_reset_to(False)
-    belt_speed = 0.3
-
-    index_speed = will_reset_to(0)
+    belt_speed = tunable(-0.3)
 
     def setup(self):
         self.joint_right_motor.setInverted(True)
         self.joint_motor_group = MotorControllerGroup(self.joint_left_motor, self.joint_right_motor)
 
-        self.rotatePID = controller.PIDController(self.rotate_kP, 0, 0)
-        self.rotatePID.setTolerance(0.05)
-        self.rotatePID.enableContinuousInput(0, 1)
-
-    # move these
-    # def up(self):
-    #     if self.position is None:
-    #         print("PIDing FAILED - misaligned")
-    #         return
-    #     if self.rotatePID.getSetpoint() != 0.05:
-    #         self.rotatePID.setSetpoint(0.05)
-    #     pidOutput = self.rotatePID.calculate(self.get_position())
-    #     print(pidOutput, self.rotatePID.getSetpoint(), self.get_position())
-    #     self.set_motor_speed(util.clamp(pidOutput, -self.max_pid_mag, self.max_pid_mag))
-
-    # def down(self):
-    #     if self.position is None:
-    #         print("PIDing FAILED - misaligned")
-    #         return
-    #     if self.rotatePID.getSetpoint() != 0.35:
-    #         self.rotatePID.setSetpoint(0.35)
-    #     pidOutput = self.rotatePID.calculate(self.get_position())
-    #     print("DOWN", pidOutput, self.rotatePID.getSetpoint(), self.get_position())
-    #     self.set_motor_speed(util.clamp(pidOutput, -self.max_pid_mag, self.max_pid_mag))
-        
-    def set_index_speed(self, speed):
-        self.index_speed = speed
+        self.joint_PID = controller.PIDController(self.joint_kP, 0, 0)
+        self.joint_PID.setTolerance(0.05)
+        self.joint_PID.enableContinuousInput(0, 1)
 
     # informational methods
     def get_radians(self) -> units.radians | None:
@@ -143,6 +112,7 @@ class Intake:
     
     @feedback
     def get_nt_position(self) -> float:
+        """Only used for sending data to NetworkTables"""
         self.get_position()
         if self.position is None:
             return 0
@@ -155,16 +125,26 @@ class Intake:
             return None
         speed = self.position - self.last_position
         if speed > 0.5:
-            return self.speed_filter.calculate(-(1 - speed) * 50)
+            return -(1 - speed) * 50
         if speed < -0.5:
-            return self.speed_filter.calculate((1 + speed) * 50)
-        return self.speed_filter.calculate(speed * 50)
+            return (1 + speed) * 50
+        return speed * 50
+    
+    def get_filtered_speed(self) -> float | None:
+        """Returns speed smoothed with a median filter. Must be called
+        repeatedly for filter to be useful
+        """
+        speed = self.get_speed()
+        if speed is None:
+            return None
+        return self.speed_filter.calculate(speed)
     
     @feedback
     def get_nt_speed(self) -> float:
+        """Only used for sending data to NetworkTables"""
         if self.position is None:
             return 0
-        return self.get_speed()
+        return self.get_filtered_speed()
     
     def get_joint_voltage(self) -> float:
         return self.joint_voltage
@@ -182,11 +162,10 @@ class Intake:
             return True
         midpoint = (util.cyclic_average(self.lower_limit, self.upper_limit) + 0.5) % 1
         return util.cyclic_contains(self.position, self.upper_limit, midpoint)
-
-    # control methods
-    def set_joint_motor_speed(self, speed: float):
-        assert -1.0 < speed < 1.0, f"Improper intake joint speed: {speed}"
-        self.joint_speed = speed
+    
+    @feedback
+    def get_joint_setpoint(self) -> float:
+        return self.joint_PID.getSetpoint()
     
     def set_joint_voltage(self, voltage: float) -> float:
         self.joint_voltage = voltage
@@ -195,11 +174,22 @@ class Intake:
     def set_joint_speed(self, velocity: units.turns_per_second, acceleration: units.turns_per_second_squared = 0) -> float:
         """Sets the motor voltage to match the supplied angular speed
         (rotations/second) and angular acceleration (rotations/second^2)
-        using a feedforward controller. Returns the set voltage.
+        using a feedforward controller. Returns the set voltage. Must be
+        continually called.
         """
         if self.position is None:
             return 0
         return self.set_joint_voltage(self.feedforward.calculate(self.get_radians(), velocity, acceleration))
+    
+    def set_joint_setpoint(self, setpoint: units.turns):
+        self.joint_PID.setSetpoint(setpoint)
+
+    def move_to_setpoint(self):
+        self.get_position()
+        if self.position is None:
+            return
+        output = self.joint_PID.calculate(self.position)
+        self.set_joint_speed(util.clamp(output, -0.2, 0.2)) #clamp? account for accel?
 
     def intake(self):
         self.belt_intaking = True
@@ -210,10 +200,8 @@ class Intake:
         self.belt_intaking = False
 
     def execute(self):
-        self.indexer_motor.set(self.index_speed)
-
         self.last_position = self.position
-        self.rotatePID.setP(self.rotate_kP)
+        self.joint_PID.setP(self.joint_kP)
         if self.belt_intaking and self.belt_ejecting:
             self.belt_intaking = False
 
@@ -225,16 +213,13 @@ class Intake:
             self.belt_motor.set(0)
 
         if self.position is not None:
-            if (self.joint_speed > 0 or self.joint_voltage > 0) and self.is_past_lower_limit():
+            if ((self.joint_voltage > 0 and self.is_past_lower_limit()) or
+                (self.joint_voltage < 0 and self.is_past_upper_limit())):
                 self.joint_motor_group.set(0)
-                return
-            if (self.joint_speed < 0 or self.joint_voltage < 0) and self.is_past_upper_limit():
-                self.joint_motor_group.set(0)
-                return
-            if self.joint_voltage != 0:
-                self.joint_motor_group.setVoltage(self.joint_voltage)
             else:
-                self.joint_motor_group.set(self.joint_speed)
+                # self.move_to_setpoint()
+                # print(self.joint_voltage, self.get_joint_setpoint())
+                self.joint_motor_group.setVoltage(self.joint_voltage)
         else:
             self.joint_motor_group.set(0)
             print("ERROR: INTAKE ENCODERS MISALIGNED")
