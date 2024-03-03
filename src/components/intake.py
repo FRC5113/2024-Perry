@@ -24,10 +24,10 @@ class Intake:
     horizontal_offset -- offset between what is considered zero
     rotations and the rotations it would take for the intake to be
     horizontal
-    feedforward -- feedforward controller that assists in finding the 
+    feedforward -- feedforward controller that assists in finding the
     correct voltage for a desired velocity and acceleration
     belt_motor -- MotorController of belt
-    intake_indexer_motor -- Indexer neo550 
+    intake_indexer_motor -- Indexer neo550
     """
 
     joint_left_motor: MotorController
@@ -36,14 +36,15 @@ class Intake:
     right_encoder: DutyCycleEncoder
     left_encoder_offset: float
     right_encoder_offset: float
-    encoder_error_tolerance: float
     lower_limit: float
     upper_limit: float
     horizontal_offset: float
     feedforward: controller.ArmFeedforward
-    belt_motor: MotorController
+    belt_motor: util.WPI_TalonFX
 
     joint_kP = tunable(0.25)
+    # replace this with a ProfiledPIDController
+    joint_PID = controller.PIDController(0, 0, 0)
     joint_voltage = will_reset_to(0)
     position = 0
     last_position = 0
@@ -52,18 +53,23 @@ class Intake:
     belt_intaking = will_reset_to(False)
     belt_ejecting = will_reset_to(False)
     belt_speed = tunable(-0.3)
+    encoder_error_tolerance = 0.1
+    note_detection_threshold = tunable(0)
+    disabled = False
 
     def setup(self):
         self.joint_right_motor.setInverted(True)
-        self.joint_motor_group = MotorControllerGroup(self.joint_left_motor, self.joint_right_motor)
+        self.joint_motor_group = MotorControllerGroup(
+            self.joint_left_motor, self.joint_right_motor
+        )
 
-        self.joint_PID = controller.PIDController(self.joint_kP, 0, 0)
+        self.joint_PID.setP(self.joint_kP)
         self.joint_PID.setTolerance(0.05)
         self.joint_PID.enableContinuousInput(0, 1)
 
     # informational methods
     def get_radians(self) -> units.radians | None:
-        """Returns the position of the intake such that 0 radians is 
+        """Returns the position of the intake such that 0 radians is
         when the center of mass is directly in front of the axel and
         pi/2 radians is when the canter of mass is directly above the
         axel
@@ -71,7 +77,7 @@ class Intake:
         if self.position is None:
             return None
         return units.rotationsToRadians(-(self.position - self.horizontal_offset))
-    
+
     def convert_to_rotations(self, radians: units.radians) -> units.turns:
         """Converts radians to rotations with respect to the intake
         offsets
@@ -80,15 +86,17 @@ class Intake:
 
     @feedback
     def get_left_position(self) -> float:
+        """Get position of left encoder adjusted so that 0 is up"""
         return (self.left_encoder.getAbsolutePosition() - self.left_encoder_offset) % 1
 
     @feedback
     def get_right_position(self) -> float:
+        """Get position of right encoder adjusted so that 0 is up"""
         return (
             self.right_encoder.getAbsolutePosition() - self.right_encoder_offset
         ) % 1
 
-    def get_position(self) -> float | None:
+    def update_position(self) -> float | None:
         """Returns the average position between the two encoders.
         If the difference between the two is greater than the given
         threshold, this function will return `None`, signifying an
@@ -109,18 +117,19 @@ class Intake:
                 position += 1
         self.position = position
         return position
-    
+
+    def get_position(self) -> float | None:
+        return self.position
+
     @feedback
     def get_nt_position(self) -> float:
         """Only used for sending data to NetworkTables"""
-        self.get_position()
         if self.position is None:
             return 0
         return self.position
 
     def get_speed(self) -> float | None:
         """Returns speed of intake in rotations/second (via encoders)"""
-        self.get_position()
         if self.position is None or self.last_position is None:
             return None
         speed = self.position - self.last_position
@@ -129,7 +138,7 @@ class Intake:
         if speed < -0.5:
             return (1 + speed) * 50
         return speed * 50
-    
+
     def get_filtered_speed(self) -> float | None:
         """Returns speed smoothed with a median filter. Must be called
         repeatedly for filter to be useful
@@ -138,40 +147,65 @@ class Intake:
         if speed is None:
             return None
         return self.speed_filter.calculate(speed)
-    
+
     @feedback
     def get_nt_speed(self) -> float:
         """Only used for sending data to NetworkTables"""
         if self.position is None:
             return 0
         return self.get_filtered_speed()
-    
+
+    @feedback
     def get_joint_voltage(self) -> float:
         return self.joint_voltage
 
     def is_past_lower_limit(self) -> bool:
-        self.get_position()
+        """Returns `True` if the position exceeds the lower limit or if
+        the encoders are misaligned. Note: this assumes that the
+        position is closer to the lower limit than the upper limit.
+        """
         if self.position is None:
             return True
         midpoint = (util.cyclic_average(self.lower_limit, self.upper_limit) + 0.5) % 1
         return util.cyclic_contains(self.position, self.lower_limit, midpoint)
 
     def is_past_upper_limit(self) -> bool:
-        self.get_position()
+        """Returns `True` if the position exceeds the lower limit or if
+        the encoders are misaligned. Note: this assumes that the
+        position is closer to the upper limit than the lower limit.
+        """
         if self.position is None:
             return True
         midpoint = (util.cyclic_average(self.lower_limit, self.upper_limit) + 0.5) % 1
         return util.cyclic_contains(self.position, self.upper_limit, midpoint)
-    
+
     @feedback
     def get_joint_setpoint(self) -> float:
+        """Returns setpoint of the PID controller for the joint"""
         return self.joint_PID.getSetpoint()
-    
+
+    def is_at_setpoint(self) -> bool:
+        return self.joint_PID.atSetpoint()
+
+    def has_note(self) -> bool:
+        """Returns `True` if a note is detected in the intake. This is
+        accomplished by looking at the velocity of the belt motor, as it
+        should drop when a note enters the intake. Note that this may be
+        inaccurate when the motor starts running."""
+        return (self.belt_intaking or self.belt_ejecting) and abs(
+            self.belt_motor.get_velocity().value
+        ) < self.note_detection_threshold
+
+    # control methods
     def set_joint_voltage(self, voltage: float) -> float:
         self.joint_voltage = voltage
         return voltage
 
-    def set_joint_speed(self, velocity: units.turns_per_second, acceleration: units.turns_per_second_squared = 0) -> float:
+    def set_joint_speed(
+        self,
+        velocity: units.turns_per_second,
+        acceleration: units.turns_per_second_squared = 0,
+    ) -> float:
         """Sets the motor voltage to match the supplied angular speed
         (rotations/second) and angular acceleration (rotations/second^2)
         using a feedforward controller. Returns the set voltage. Must be
@@ -179,17 +213,37 @@ class Intake:
         """
         if self.position is None:
             return 0
-        return self.set_joint_voltage(self.feedforward.calculate(self.get_radians(), velocity, acceleration))
-    
+        return self.set_joint_voltage(
+            self.feedforward.calculate(
+                self.get_radians(),
+                units.rotationsToRadians(velocity),
+                units.rotationsToRadians(acceleration),
+            )
+        )
+
     def set_joint_setpoint(self, setpoint: units.turns):
         self.joint_PID.setSetpoint(setpoint)
 
     def move_to_setpoint(self):
-        self.get_position()
+        """Uses the PID controller to find a speed for the joint based
+        on the current position and the setpoint, then uses the
+        feedforward controller to convert that speed to a voltage.
+        """
         if self.position is None:
             return
-        output = self.joint_PID.calculate(self.position)
-        self.set_joint_speed(util.clamp(output, -0.2, 0.2)) #clamp? account for accel?
+        output = -self.joint_PID.calculate(self.position)
+        """Because the input speed is the position error times kP
+        (when kI=kD=0), the input acceleration should in theory be
+        the velocity error times kP. (Might be completely wrong)
+        """
+        acceleration = -self.joint_kP * self.joint_PID.getVelocityError()
+        if self.joint_PID.atSetpoint():
+            output = 0
+            acceleration = 0
+        print(
+            f"y: {self.position}, r: {self.get_joint_setpoint()}, e: {self.joint_PID.getPositionError()}, u: {output}, u': {acceleration}"
+        )
+        self.set_joint_speed(output, acceleration)  # clamp?
 
     def intake(self):
         self.belt_intaking = True
@@ -199,12 +253,17 @@ class Intake:
         self.belt_ejecting = True
         self.belt_intaking = False
 
+    def disable(self):
+        self.disabled = True
+
     def execute(self):
         self.last_position = self.position
         self.joint_PID.setP(self.joint_kP)
         if self.belt_intaking and self.belt_ejecting:
             self.belt_intaking = False
 
+        if self.disabled:
+            return
         if self.belt_intaking:
             self.belt_motor.set(self.belt_speed)
         elif self.belt_ejecting:
@@ -213,17 +272,17 @@ class Intake:
             self.belt_motor.set(0)
 
         if self.position is not None:
-            if ((self.joint_voltage > 0 and self.is_past_lower_limit()) or
-                (self.joint_voltage < 0 and self.is_past_upper_limit())):
+            if (self.joint_voltage > 0 and self.is_past_lower_limit()) or (
+                self.joint_voltage < 0 and self.is_past_upper_limit()
+            ):
                 self.joint_motor_group.set(0)
             else:
-                # self.move_to_setpoint()
-                # print(self.joint_voltage, self.get_joint_setpoint())
                 self.joint_motor_group.setVoltage(self.joint_voltage)
         else:
             self.joint_motor_group.set(0)
             print("ERROR: INTAKE ENCODERS MISALIGNED")
 
+    # extra feedback
     @feedback
     def get_upper_limit(self):
         return self.is_past_upper_limit()
@@ -231,3 +290,15 @@ class Intake:
     @feedback
     def get_lower_limit(self):
         return self.is_past_lower_limit()
+
+    @feedback
+    def get_pid_p_error(self):
+        return self.joint_PID.getPositionError()
+
+    @feedback
+    def get_pid_v_error(self):
+        return self.joint_PID.getVelocityError()
+
+    @feedback
+    def get_pid_at_setpoint(self):
+        return self.is_at_setpoint()

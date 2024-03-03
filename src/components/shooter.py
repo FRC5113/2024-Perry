@@ -1,12 +1,13 @@
 from wpilib import MotorControllerGroup
 from wpilib.interfaces import MotorController
 from magicbot import tunable, will_reset_to
+from rev import CANSparkMax
 
 
 class Shooter:
     """Component that controls the two motors that shoot the notes"""
 
-    belt_motor: MotorController
+    belt_motor: CANSparkMax
     feed_left_motor: MotorController
     feed_right_motor: MotorController
     shooter_left_motor: MotorController
@@ -19,12 +20,27 @@ class Shooter:
     feed_speed = tunable(-0.3)
     shooter_enabled = will_reset_to(False)
     shooter_speed = tunable(1)
+    note_detection_threshold = tunable(0)
 
     def setup(self):
         self.feed_right_motor.setInverted(True)
-        self.feed_motor_group = MotorControllerGroup(self.feed_left_motor, self.feed_right_motor)
+        self.feed_motor_group = MotorControllerGroup(
+            self.feed_left_motor, self.feed_right_motor
+        )
         self.shooter_right_motor.setInverted(True)
-        self.shooter_motor_group = MotorControllerGroup(self.shooter_left_motor, self.shooter_right_motor)
+        self.shooter_motor_group = MotorControllerGroup(
+            self.shooter_left_motor, self.shooter_right_motor
+        )
+
+    def has_note(self) -> bool:
+        """Returns `True` if a note is detected in the belt. This is
+        accomplished by looking at the velocity of the belt motor, as it
+        should drop when a note enters the belt. Note that this may be
+        inaccurate when the motor starts running.
+        """
+        return (self.belt_intaking or self.belt_ejecting) and abs(
+            self.belt_motor.getEncoder().getVelocity()
+        ) < self.note_detection_threshold
 
     def intake(self):
         self.belt_intaking = True

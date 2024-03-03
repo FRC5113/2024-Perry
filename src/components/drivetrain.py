@@ -34,6 +34,9 @@ class Drivetrain:
             self.left_motor_controller_group, self.right_motor_controller_group
         )
 
+    def on_enable(self):
+        self.drive.setSafetyEnabled(True)
+
     def arcade_drive(self, forward: float, turn: float):
         if not (-1.0 <= forward <= 1.0):
             raise Exception(f"Improper value for forward entered: {forward}")
