@@ -19,13 +19,6 @@ class Intake:
     right_encoder_offset -- Subtracted from right encoder measurements
     encoder_error_tolerance -- Maximum amount left and right encoder
         values are allowed to differ
-    lower_limit -- intake not allowed to drop below this (corresponds to down)
-    upper_limit -- intake not allowed to raise above this (corresponds to up)
-    horizontal_offset -- offset between what is considered zero
-    rotations and the rotations it would take for the intake to be
-    horizontal
-    feedforward -- feedforward controller that assists in finding the
-    correct voltage for a desired velocity and acceleration
     belt_motor -- MotorController of belt
     intake_indexer_motor -- Indexer neo550
     """
@@ -36,16 +29,16 @@ class Intake:
     right_encoder: DutyCycleEncoder
     left_encoder_offset: float
     right_encoder_offset: float
-    lower_limit: float
-    upper_limit: float
-    horizontal_offset: float
-    feedforward: controller.ArmFeedforward
     belt_motor: util.WPI_TalonFX
 
+    lower_limit = 0.0
+    upper_limit = 0.39
+    horizontal_offset = 0.27
     joint_kP = tunable(0.25)
     # replace this with a ProfiledPIDController
     joint_PID = controller.PIDController(0, 0, 0)
     joint_voltage = will_reset_to(0)
+    feedforward = controller.ArmFeedforward(0.24, 0.42, 0.78, 0.01)
     position = 0
     last_position = 0
     speed_filter = filter.MedianFilter(10)
@@ -64,6 +57,7 @@ class Intake:
         )
 
         self.joint_PID.setP(self.joint_kP)
+        self.joint_PID.setSetpoint(self.lower_limit)
         self.joint_PID.setTolerance(0.05)
         self.joint_PID.enableContinuousInput(0, 1)
 

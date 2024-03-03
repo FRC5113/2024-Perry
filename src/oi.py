@@ -121,7 +121,7 @@ class Comp_OI(OI_Base):
         return self.joystick.getX() < -self.deadband
 
     def intake_up(self):
-        return self.joystick.getRawButton(3)
+        return self.joystick.getRawButton(5) or self.joystick.getRawButton(6)
 
     def intake_down(self):
-        return self.joystick.getRawButton(4)
+        return self.joystick.getRawButton(3) or self.joystick.getRawButton(4)

@@ -74,6 +74,12 @@ class IntakeControl(StateMachine):
 
     @state
     def ready(self):
+        if self.eject_trigger:
+            self.next_state("ejecting")
+            return
+        if self.intake_trigger:
+            self.next_state("intaking")
+            return
         if not self.shooter_control.is_running_motors():
             if self.joint_setpoint != -1:
                 self.intake.set_joint_setpoint(self.joint_setpoint)
@@ -82,12 +88,6 @@ class IntakeControl(StateMachine):
             or not self.intake.get_joint_setpoint == self.intake.upper_limit
         ):
             self.next_state("transitioning")
-            return
-        if self.eject_trigger:
-            self.next_state("ejecting")
-            return
-        if self.intake_trigger:
-            self.next_state("intaking")
 
     @state
     def intaking(self, state_tm):
@@ -104,11 +104,9 @@ class IntakeControl(StateMachine):
 
     @state
     def ejecting(self, state_tm):
-        if not self.intake.has_note() and state_tm > 1:
-            if self.intake_trigger:
-                self.next_state("intaking")
-            elif not self.eject_trigger:
-                self.next_state("ready")
+        self.intake.eject()
+        if not self.intake.has_note() and state_tm > 1 and not self.eject_trigger:
+            self.next_state("ready")
 
     @state
     def disabled(self):
