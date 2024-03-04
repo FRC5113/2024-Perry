@@ -3,7 +3,6 @@ from magicbot.state_machine import state, timed_state
 
 from components.intake import Intake
 from components.shooter import Shooter
-from components.intake_control import IntakeControl
 
 
 class ShooterControl(StateMachine):
@@ -19,19 +18,16 @@ class ShooterControl(StateMachine):
     intake_trigger = will_reset_to(False)
     eject_trigger = will_reset_to(False)
     shoot_trigger = will_reset_to(False)
+    intake_state = "transitioning"
 
-    # informational methods
-    def is_running_motors(self):
-        return self.current_state != "idle" and self.current_state != "holding"
-
-    def is_intake_ready(self):
-        return self.current_state == "idle" or self.current_state == "intaking"
+    def update_intake_state(self, state: str):
+        self.intake_state = state
 
     """Control methods
     Note that these are all prefixed with "request." This is because the
     corresponding action is not guaranteed to happen -- it will only
     occur if the statemachine determines it to be correct to do. In
-    addition, if a request does not happen for whatever reason, it 
+    addition, if a request does not happen for whatever reason, it
     still will not happen when the statemachine determines doing that
     request is okay -- the action must be requested again.
     """

@@ -53,10 +53,11 @@ class MyRobot(MagicRobot):
 
         self.drive_curve = util.cubic_curve(scalar=1, deadband=0.1, max_mag=1)
         self.turn_curve = util.cubic_curve(scalar=0.75, deadband=0.1, max_mag=1)
-        # self.intake_curve = util.linear_curve(scalar=0.05, deadband=0.1, max_mag=1)
 
     def teleopPeriodic(self):
         self.intake.update_position()
+        self.intake_control.update_shooter_state(self.shooter_control.current_state)
+        self.shooter_control.update_intake_state(self.intake_control.current_state)
 
         with self.consumeExceptions():
             self.drivetrain.arcade_drive(
@@ -121,17 +122,17 @@ class MyRobot(MagicRobot):
 
     @feedback
     def get_joint_ready(self) -> bool:
-        return (
-            not self.shooter_control.is_running_motors()
-            and self.intake_control.current_state in ["transitioning", "idle", "ready"]
-        )
+        return self.shooter_control.current_state in [
+            "idle",
+            "holding",
+        ] and self.intake_control.current_state in ["transitioning", "idle", "ready"]
 
     @feedback
     def get_intake_ready(self) -> bool:
-        return (
-            self.shooter_control.is_intake_ready()
-            and self.intake_control.current_state in ["ready", "intaking"]
-        )
+        return self.shooter_control.current_state in [
+            "idle",
+            "intaking",
+        ] and self.intake_control.current_state in ["ready", "intaking"]
 
     @feedback
     def get_eject_ready(self) -> bool:

@@ -3,7 +3,6 @@ from magicbot.state_machine import state
 
 from components.intake import Intake
 from components.shooter import Shooter
-from components.shooter_control import ShooterControl
 
 
 class IntakeControl(StateMachine):
@@ -19,18 +18,19 @@ class IntakeControl(StateMachine):
     """`joint_setpoint` is used instead of directly setting the setpoint
     of the PID controller because it ensures that the setpoint will only
     be changed once the state machine determines it is okay for the
-    joint to move. Setting this to -1 will cause the state machine not 
+    joint to move. Setting this to -1 will cause the state machine not
     to update the setpoint."""
     joint_setpoint = will_reset_to(-1)
     # eject_trigger will override intake_trigger
     intake_trigger = will_reset_to(False)
     eject_trigger = will_reset_to(False)
+    shooter_state = "idle"
 
     """Control methods
     Note that these are all prefixed with "request." This is because the
     corresponding action is not guaranteed to happen -- it will only
     occur if the statemachine determines it to be correct to do. In
-    addition, if a request does not happen for whatever reason, it 
+    addition, if a request does not happen for whatever reason, it
     still will not happen when the statemachine determines doing that
     request is okay -- the action must be requested again.
     """
@@ -47,10 +47,13 @@ class IntakeControl(StateMachine):
     def request_eject(self):
         self.eject_trigger = True
 
+    def update_shooter_state(self, state: str):
+        self.shooter_state = state
+
     # states
     @state(first=True)
     def transitioning(self):
-        if not self.shooter_control.is_running_motors():
+        if self.shooter_state == "idle" or self.shooter_state == "holding":
             if self.joint_setpoint != -1:
                 self.intake.set_joint_setpoint(self.joint_setpoint)
             if not self.intake.is_at_setpoint():
@@ -63,7 +66,7 @@ class IntakeControl(StateMachine):
 
     @state
     def idle(self):
-        if not self.shooter_control.is_running_motors():
+        if self.shooter_state == "idle" or self.shooter_state == "holding":
             if self.joint_setpoint != -1:
                 self.intake.set_joint_setpoint(self.joint_setpoint)
         if (
@@ -80,7 +83,7 @@ class IntakeControl(StateMachine):
         if self.intake_trigger:
             self.next_state("intaking")
             return
-        if not self.shooter_control.is_running_motors():
+        if self.shooter_state == "idle" or self.shooter_state == "holding":
             if self.joint_setpoint != -1:
                 self.intake.set_joint_setpoint(self.joint_setpoint)
         if (
@@ -97,7 +100,7 @@ class IntakeControl(StateMachine):
             return
         if state_tm > 1 and self.intake.has_note():
             self.shooter_control.request_intake()
-        if self.shooter_control.is_intake_ready():
+        if self.shooter_state == "idle" or self.shooter_state == "intaking":
             self.intake.intake()
         if not self.intake.has_note() and not self.intake_trigger:
             self.next_state("ready")

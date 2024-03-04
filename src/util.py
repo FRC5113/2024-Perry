@@ -40,7 +40,11 @@ def cyclic_average(a: float, b: float) -> float:
 
 
 def curve(
-    mapping: Callable[[float], float], offset: float, deadband: float, max_mag: float
+    mapping: Callable[[float], float],
+    offset: float,
+    deadband: float,
+    max_mag: float,
+    absolute_offset: bool = True,
 ) -> Callable[[float], float]:
     """Return a function that applies a curve to an input.
 
@@ -51,13 +55,16 @@ def curve(
         the input is treated as zero
     max_mag -- restricts the output magnitude to a maximum.
         If this is 0, no restriction is applied.
+    absolute_offset -- If true, applies offset always (even when deadbanded),
+        If false, adds sign(input_val) * offset or 0 in the deadband
     """
 
     def f(input_val: float) -> float:
         """Apply a curve to an input. Be sure to call this function to get an output, not curve."""
         if abs(input_val) < deadband:
-            return offset
-        output_val = mapping(input_val) + offset
+            return offset if absolute_offset else 0
+        applied_offset = (1 if absolute_offset else abs(input_val) / input_val) * offset
+        output_val = mapping(input_val) + applied_offset
         if max_mag == 0:
             return output_val
         else:
@@ -71,8 +78,9 @@ def linear_curve(
     offset: float = 0.0,
     deadband: float = 0.0,
     max_mag: float = 0.0,
+    absolute_offset: bool = True,
 ) -> Callable[[float], float]:
-    return curve(lambda x: scalar * x, offset, deadband, max_mag)
+    return curve(lambda x: scalar * x, offset, deadband, max_mag, absolute_offset)
 
 
 def ollie_curve(
@@ -80,8 +88,11 @@ def ollie_curve(
     offset: float = 0.0,
     deadband: float = 0.0,
     max_mag: float = 0.0,
+    absolute_offset: bool = True,
 ) -> Callable[[float], float]:
-    return curve(lambda x: scalar * x * abs(x), offset, deadband, max_mag)
+    return curve(
+        lambda x: scalar * x * abs(x), offset, deadband, max_mag, absolute_offset
+    )
 
 
 def cubic_curve(
@@ -89,8 +100,9 @@ def cubic_curve(
     offset: float = 0.0,
     deadband: float = 0.0,
     max_mag: float = 0.0,
+    absolute_offset: bool = True,
 ) -> Callable[[float], float]:
-    return curve(lambda x: scalar * x**3, offset, deadband, max_mag)
+    return curve(lambda x: scalar * x**3, offset, deadband, max_mag, absolute_offset)
 
 
 class EmptyController(MotorController):
