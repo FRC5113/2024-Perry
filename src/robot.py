@@ -51,8 +51,12 @@ class MyRobot(MagicRobot):
 
         self.oi = oi.Double_OI()
 
-        self.drive_curve = util.cubic_curve(scalar=1, deadband=0.1, max_mag=1)
-        self.turn_curve = util.cubic_curve(scalar=0.75, deadband=0.1, max_mag=1)
+        self.drive_curve = util.cubic_curve(
+            scalar=0.75, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=True
+        )
+        self.turn_curve = util.cubic_curve(
+            scalar=0.5, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=True
+        )
 
     def teleopPeriodic(self):
         self.intake.update_position()
