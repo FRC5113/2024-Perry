@@ -160,3 +160,12 @@ cython_debug/
 #.idea/
 # Ignore vscode
 .vscode
+
+# Ignore CTRE simulation details
+*.dat
+
+# ignore sim data
+networktables.json
+simgui-ds.json
+simgui-window.json
+simgui.json

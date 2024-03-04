@@ -11,7 +11,6 @@ class IntakeControl(StateMachine):
     """
 
     # other components
-    shooter_control: ShooterControl
     intake: Intake
     shooter: Shooter
 
