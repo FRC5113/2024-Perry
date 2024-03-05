@@ -79,10 +79,10 @@ class MyRobot(MagicRobot):
             #     self.shooter.eject()
             if self.oi.intake_down():
                 # self.intake.set_joint_setpoint(self.intake_upper_limit)
-                self.intake.set_joint_voltage(1)
+                self.intake.set_joint_voltage(2)
                 # self.intake.set_index_speed(0.25)
             if self.oi.intake_up():
-                self.intake.set_joint_voltage(-0.5)
+                self.intake.set_joint_voltage(-1)
                 # self.intake.set_joint_setpoint(self.intake_lower_limit)
                 # self.intake.set_index_speed(-0.25)
             

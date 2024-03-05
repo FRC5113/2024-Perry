@@ -4,7 +4,8 @@ import wpilib
 class OI:
     def __init__(self):
         self.xbox = wpilib.XboxController(0)
-        self.joystick = wpilib.Joystick(1)
+        self.xbox_secondary = wpilib.XboxController(0)
+        # self.joystick = wpilib.Joystick(1)
 
         # OI.py
     def drive_forward(self):
@@ -14,19 +15,19 @@ class OI:
         return -self.xbox.getRightX()
     
     def shoot(self):
-        return self.joystick.getRawButton(7)
+        return self.xbox_secondary.getXButton()
 
     def do_intake(self):
-        return self.joystick.getRawButton(9)
+        return self.xbox_secondary.getAButton()
 
     def feed(self):
-        return self.joystick.getRawButton(8)
+        return False
 
     def eject(self):
-        return self.joystick.getRawButton(10)
+        return False
 
     def intake_down(self):
-        return self.joystick.getRawButton(11)
+        return self.xbox_secondary.getRightBumper()
     
     def intake_up(self):
-        return self.joystick.getRawButton(12)
+        return self.xbox_secondary.getLeftBumper()
