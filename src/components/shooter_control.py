@@ -44,43 +44,37 @@ class ShooterControl(StateMachine):
     # states
     @state(first=True)
     def idle(self):
-        if self.intake_trigger:  # add delay?
-            self.next_state("intaking")
-        # should theoretically not need a transition to ejecting
-
-    @state
-    def intaking(self, state_tm):
-        self.shooter.intake()
-        # be careful with state_tm
         if self.eject_trigger:
             self.next_state("ejecting")
             return
-        if state_tm > 1 and not self.intake.has_note:
-            if self.shooter.has_note():
-                self.next_state("holding")
-            else:
-                self.next_state("idle")
+        if self.intake_trigger:
+            self.next_state("intaking")
+            return
+        if self.shoot_trigger:
+            self.next_state("loading")
 
     @state
-    def ejecting(self, state_tm):
-        self.shooter.eject()
-        if self.shooter.has_note() and state_tm > 1:
+    def intaking(self):
+        self.shooter.intake()
+        self.shooter.feed_in()
+        if self.eject_trigger:
+            self.next_state("ejecting")
+            return
+        if not self.intake_trigger:
             self.next_state("idle")
 
     @state
-    def holding(self):
-        if self.eject_trigger:
-            self.next_state("ejecting")
-            return
-        if self.shoot_trigger:
-            self.next_state("feeding")
+    def ejecting(self):
+        self.shooter.eject()
+        if not self.eject_trigger:
+            self.next_state("idle")
 
-    @timed_state(duration=1.0, next_state="shooting")
-    def feeding(self):
-        self.shooter.intake()
-        self.shooter.feed()
+    @timed_state(duration=0.25, next_state="shooting")
+    def loading(self):
+        self.shooter.feed_out()
+        self.shooter.shoot()
 
     @timed_state(duration=1.0, next_state="idle")
     def shooting(self):
-        self.shooter.feed()
+        self.shooter.feed_in()
         self.shooter.shoot()

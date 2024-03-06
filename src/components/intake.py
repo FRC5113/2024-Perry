@@ -42,12 +42,13 @@ class Intake:
     position = 0
     last_position = 0
     speed_filter = filter.MedianFilter(10)
+    motor_speed_filter = filter.MedianFilter(5)
     max_pid_mag = tunable(0.2)
     belt_intaking = will_reset_to(False)
     belt_ejecting = will_reset_to(False)
     belt_speed = tunable(-0.3)
     encoder_error_tolerance = 0.1
-    note_detection_threshold = tunable(0)
+    note_detection_threshold = tunable(20)
     disabled = False
 
     def setup(self):
@@ -148,6 +149,11 @@ class Intake:
         if self.position is None:
             return 0
         return self.get_filtered_speed()
+    
+    @feedback
+    def get_filtered_motor_speed(self) -> float:
+        """Call continuously"""
+        return self.motor_speed_filter.calculate(self.belt_motor.get_velocity().value)
 
     @feedback
     def get_joint_voltage(self) -> float:
@@ -186,9 +192,7 @@ class Intake:
         accomplished by looking at the velocity of the belt motor, as it
         should drop when a note enters the intake. Note that this may be
         inaccurate when the motor starts running."""
-        return (self.belt_intaking or self.belt_ejecting) and abs(
-            self.belt_motor.get_velocity().value
-        ) < self.note_detection_threshold
+        return abs(self.get_filtered_motor_speed()) < self.note_detection_threshold
 
     # control methods
     def set_joint_voltage(self, voltage: float) -> float:
@@ -296,3 +300,11 @@ class Intake:
     @feedback
     def get_pid_at_setpoint(self):
         return self.is_at_setpoint()
+    
+    @feedback 
+    def get_motor_speed(self):
+        return abs(self.belt_motor.get_velocity().value)
+    
+    @feedback
+    def get_has_note(self):
+        return self.has_note()

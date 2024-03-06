@@ -70,7 +70,7 @@ class IntakeControl(StateMachine):
                 self.intake.set_joint_setpoint(self.joint_setpoint)
         if (
             not self.intake.is_at_setpoint()
-            or not self.intake.get_joint_setpoint == self.intake.lower_limit
+            or not self.intake.get_joint_setpoint() == self.intake.lower_limit
         ):
             self.next_state("transitioning")
 
@@ -87,7 +87,7 @@ class IntakeControl(StateMachine):
                 self.intake.set_joint_setpoint(self.joint_setpoint)
         if (
             not self.intake.is_at_setpoint()
-            or not self.intake.get_joint_setpoint == self.intake.upper_limit
+            or not self.intake.get_joint_setpoint() == self.intake.upper_limit
         ):
             self.next_state("transitioning")
 
@@ -97,17 +97,15 @@ class IntakeControl(StateMachine):
         if self.eject_trigger:
             self.next_state("ejecting")
             return
-        if state_tm > 1 and self.intake.has_note():
-            self.shooter_control.request_intake()
         if self.shooter_state == "idle" or self.shooter_state == "intaking":
             self.intake.intake()
-        if not self.intake.has_note() and not self.intake_trigger:
+        if not self.intake_trigger:
             self.next_state("ready")
 
     @state
     def ejecting(self, state_tm):
         self.intake.eject()
-        if not self.intake.has_note() and state_tm > 1 and not self.eject_trigger:
+        if not self.eject_trigger:
             self.next_state("ready")
 
     @state

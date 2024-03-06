@@ -1,6 +1,7 @@
 from wpilib import MotorControllerGroup
 from wpilib.interfaces import MotorController
-from magicbot import tunable, will_reset_to
+from wpimath.filter import MedianFilter
+from magicbot import tunable, will_reset_to, feedback
 from rev import CANSparkMax
 
 
@@ -16,11 +17,13 @@ class Shooter:
     belt_intaking = will_reset_to(False)
     belt_ejecting = will_reset_to(False)
     belt_speed = tunable(0.3)
-    feed_enabled = will_reset_to(False)
+    feeding_in = will_reset_to(False)
+    feeding_out = will_reset_to(False)
     feed_speed = tunable(-0.3)
     shooter_enabled = will_reset_to(False)
     shooter_speed = tunable(1)
-    note_detection_threshold = tunable(0)
+    note_detection_threshold = tunable(3000)
+    motor_speed_filter = MedianFilter(5)
 
     def setup(self):
         self.feed_right_motor.setInverted(True)
@@ -31,6 +34,11 @@ class Shooter:
         self.shooter_motor_group = MotorControllerGroup(
             self.shooter_left_motor, self.shooter_right_motor
         )
+        self.belt_encoder = self.belt_motor.getEncoder()
+
+    @feedback
+    def get_filtered_motor_speed(self):
+        return self.motor_speed_filter.calculate(self.belt_encoder.getVelocity())
 
     def has_note(self) -> bool:
         """Returns `True` if a note is detected in the belt. This is
@@ -38,9 +46,7 @@ class Shooter:
         should drop when a note enters the belt. Note that this may be
         inaccurate when the motor starts running.
         """
-        return (self.belt_intaking or self.belt_ejecting) and abs(
-            self.belt_motor.getEncoder().getVelocity()
-        ) < self.note_detection_threshold
+        return abs(self.get_filtered_motor_speed()) < self.note_detection_threshold
 
     def intake(self):
         self.belt_intaking = True
@@ -51,12 +57,18 @@ class Shooter:
     def shoot(self):
         self.shooter_enabled = True
 
-    def feed(self):
-        self.feed_enabled = True
+    def feed_in(self):
+        self.feeding_in = True
+
+    def feed_out(self):
+        self.feeding_out = True
 
     def execute(self):
         if self.belt_intaking and self.belt_ejecting:
             self.belt_intaking = False
+        if self.feeding_in and self.feeding_out:
+            self.feeding_in = False
+
         if self.belt_intaking:
             self.belt_motor.set(self.belt_speed)
         elif self.belt_ejecting:
@@ -64,8 +76,10 @@ class Shooter:
         else:
             self.belt_motor.set(0)
 
-        if self.feed_enabled:
+        if self.feeding_in:
             self.feed_motor_group.set(self.feed_speed)
+        elif self.feeding_out:
+            self.feed_motor_group.set(-self.feed_speed * 0.1)
         else:
             self.feed_motor_group.set(0)
 
@@ -73,3 +87,11 @@ class Shooter:
             self.shooter_motor_group.set(self.shooter_speed)
         else:
             self.shooter_motor_group.set(0)
+
+    @feedback
+    def get_motor_speed(self):
+        return abs(self.belt_encoder.getVelocity())
+    
+    @feedback
+    def get_has_note(self):
+        return self.has_note()

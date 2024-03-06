@@ -28,39 +28,45 @@ class OI_Base:
 
     def move_intake(self) -> bool:
         return False
+    
+    def align(self) -> bool:
+        return False
 
 
-class Double_OI(OI_Base):
-    def __init__(self, xbox_port: int = 0, joystick_port: int = 1):
-        self.xbox = wpilib.XboxController(xbox_port)
-        self.joystick = wpilib.Joystick(joystick_port)
+class Double_Xbox_OI(OI_Base):
+    def __init__(self, xbox_port_1: int = 0, xbox_port_2: int = 1):
+        self.xbox1 = wpilib.XboxController(xbox_port_1)
+        self.xbox2 = wpilib.XboxController(xbox_port_2)
 
     def drive_forward(self):
-        return self.xbox.getLeftY()
+        return self.xbox1.getLeftY()
 
     def drive_turn(self):
-        return -self.xbox.getLeftX()
+        return -self.xbox1.getRightX()
 
     def shoot(self):
-        return self.joystick.getRawButton(7)
+        return self.xbox2.getBButton()
 
     def intake(self):
-        return self.joystick.getRawButton(9)
+        return self.xbox2.getXButton()
 
     def feed(self):
-        return self.joystick.getRawButton(8)
+        return self.xbox2.getAButton()
 
     def eject(self):
-        return self.joystick.getRawButton(10)
+        return self.xbox2.getYButton()
 
     def intake_up(self):
-        return self.joystick.getRawButton(11)
+        return self.xbox2.getLeftY() > 0.1
 
     def intake_down(self):
-        return self.joystick.getRawButton(12)
+        return self.xbox2.getLeftY() < -0.1
 
     def move_intake(self):
-        return self.joystick.getTrigger()
+        return self.xbox2.getLeftBumper()
+
+    def align(self):
+        return self.xbox1.getAButton()
 
 
 class Joystick_OI(OI_Base):
