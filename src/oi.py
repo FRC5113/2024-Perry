@@ -31,6 +31,12 @@ class OI_Base:
     
     def align(self) -> bool:
         return False
+    
+    def contract_climbers(self) -> bool:
+        return False
+    
+    def extend_climbers(self) -> bool:
+        return False
 
 
 class Double_Xbox_OI(OI_Base):
@@ -66,7 +72,15 @@ class Double_Xbox_OI(OI_Base):
         return self.xbox2.getLeftBumper()
 
     def align(self):
+        return self.xbox1.getXButton()
+    
+    def contract_climbers(self):
         return self.xbox1.getAButton()
+    
+    def extend_climbers(self):
+        return self.xbox1.getBButton()
+    
+
 
 
 class Joystick_OI(OI_Base):

@@ -79,7 +79,7 @@ class Shooter:
         if self.feeding_in:
             self.feed_motor_group.set(self.feed_speed)
         elif self.feeding_out:
-            self.feed_motor_group.set(-self.feed_speed * 0.1)
+            self.feed_motor_group.set(-self.feed_speed * 0.3)
         else:
             self.feed_motor_group.set(0)
 

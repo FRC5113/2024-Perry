@@ -10,6 +10,7 @@ from rev import CANSparkMax, CANSparkLowLevel
 from photonlibpy.photonCamera import PhotonCamera
 from magicbot import MagicRobot, tunable, feedback
 
+from components.climber import Climber
 from components.drivetrain import Drivetrain
 from components.drive_control import DriveControl
 from components.intake import Intake
@@ -29,6 +30,7 @@ class MyRobot(MagicRobot):
     intake_control: IntakeControl
     shooter_control: ShooterControl
 
+    climber: Climber
     drivetrain: Drivetrain
     intake: Intake
     shooter: Shooter
@@ -39,6 +41,9 @@ class MyRobot(MagicRobot):
         BRUSHLESS = CANSparkLowLevel.MotorType.kBrushless
 
         self.gyro = AHRS.create_spi()
+
+        self.climber_left_motor = WPI_TalonSRX(62)
+        self.climber_right_motor = WPI_TalonSRX(61)
 
         self.drivetrain_front_left_motor = CANSparkMax(5, BRUSHLESS)
         self.drivetrain_front_right_motor = CANSparkMax(50, BRUSHLESS)
@@ -67,7 +72,7 @@ class MyRobot(MagicRobot):
         self.oi = oi.Double_Xbox_OI()
 
         self.drive_curve = util.cubic_curve(
-            scalar=0.75, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
+            scalar=0.3, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
         )
         self.turn_curve = util.cubic_curve(
             scalar=0.5, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
@@ -79,13 +84,18 @@ class MyRobot(MagicRobot):
         self.shooter_control.update_intake_state(self.intake_control.current_state)
 
         with self.consumeExceptions():
-            self.drive_control.arcade_drive(
+            self.drivetrain.arcade_drive(
                 self.drive_curve(self.oi.drive_forward()),
                 self.turn_curve(self.oi.drive_turn()),
             )
 
-            if self.oi.align():
-                self.drive_control.request_align()
+            if self.oi.contract_climbers():
+                self.climber.contract()
+            if self.oi.extend_climbers():
+                self.climber.extend()
+
+            # if self.oi.align():
+            #     self.drive_control.request_align()
 
             # if self.oi.shoot():
             #     self.shooter.intake()

@@ -69,9 +69,12 @@ class ShooterControl(StateMachine):
         if not self.eject_trigger:
             self.next_state("idle")
 
-    @timed_state(duration=0.25, next_state="shooting")
+    @timed_state(duration=0.25, next_state="preshooting")
     def loading(self):
         self.shooter.feed_out()
+    
+    @timed_state(duration=0.25, next_state="shooting")
+    def preshooting(self):
         self.shooter.shoot()
 
     @timed_state(duration=1.0, next_state="idle")
