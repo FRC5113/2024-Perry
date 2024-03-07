@@ -175,14 +175,14 @@ class WPI_TalonFX(TalonFX, MotorController):
         mode -- Idle mode (coast or brake)
         """
         self.config.motor_output.neutral_mode = mode
-        self.configurator.apply(self.config)
+        self.configurator.apply(self.config)  # type: ignore
 
     def setInverted(self, isInverted: bool):
         if isInverted:
             self.config.motor_output.inverted = InvertedValue.CLOCKWISE_POSITIVE
         else:
             self.config.motor_output.inverted = InvertedValue.COUNTER_CLOCKWISE_POSITIVE
-        self.configurator.apply(self.config)
+        self.configurator.apply(self.config)  # type: ignore
 
     def setVoltage(self, volts: float):
         if not self.is_disabled:

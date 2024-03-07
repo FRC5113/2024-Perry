@@ -22,9 +22,6 @@ class OI_Base:
     def eject(self) -> bool:
         return False
 
-    def feed(self) -> bool:
-        return False
-
     def intake_up(self) -> bool:
         return False
 
@@ -76,9 +73,6 @@ class Double_Xbox_OI(OI_Base):
     def intake(self):
         return self.xbox2.getXButton()
 
-    def feed(self):
-        return self.xbox2.getAButton()
-
     def eject(self):
         return self.xbox2.getYButton()
 
@@ -125,9 +119,6 @@ class Joystick_OI(OI_Base):
 
     def intake(self):
         return self.joystick.getRawButton(9)
-
-    def feed(self):
-        return self.joystick.getRawButton(8)
 
     def eject(self):
         return self.joystick.getRawButton(10)

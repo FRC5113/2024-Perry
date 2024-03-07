@@ -48,12 +48,13 @@ class DriveControl(magicbot.StateMachine):
         based on its distance and angle to the tag. This uses a more
         generous tolerance than the PIDs.
         """
-        if not self.vision.hasTargets():
+        vision_x = self.vision.getX()
+        if not self.vision.hasTargets() or vision_x is None:
             return False
         return (
             abs(self.vision.get_adjusted_heading())
             < self.turn_to_angle_tP * self.manual_tolerance_scalar
-            and abs(self.vision.getX() - self.drive_from_tag_setpoint)
+            and abs(vision_x - self.drive_from_tag_setpoint)
             < self.drive_from_tag_tP * self.manual_tolerance_scalar
         )
 
@@ -77,12 +78,14 @@ class DriveControl(magicbot.StateMachine):
         """
         if not self.vision.hasTargets():
             return
-        ct = np.array([self.vision.getX(), self.vision.getY(), self.vision.getZ()])
+        # ct = np.array([self.vision.getX(), self.vision.getY(), self.vision.getZ()])
         # latency = self.vision.getLatency()
         # turn_rate = self.gyro.getRate()
-        theta = self.vision.getAdjustedHeading(ct)  # - latency * turn_rate
+        theta = self.vision.getAdjustedHeading()  # - latency * turn_rate
         # if self.turn_to_angle_controller.atSetpoint():
         #     theta = 0
+        if theta is None:
+            return
         self.set_angle(self.gyro.getAngle() + theta)
 
     @state(first=True)
@@ -132,6 +135,8 @@ class DriveControl(magicbot.StateMachine):
             self.next_state("free")
             return
         measurement = self.vision.getX()
+        if measurement is None:
+            return
         error = self.drive_from_tag_setpoint - measurement
         output = error * self.drive_from_tag_kP
         self.drivetrain.arcade_drive(util.clamp(-output, -0.3, 0.3), 0)

@@ -155,9 +155,10 @@ class Intake:
     @feedback
     def get_nt_speed(self) -> float:
         """Only used for sending data to NetworkTables"""
-        if self.position is None:
+        filtered_speed = self.get_filtered_speed()
+        if self.position is None or not filtered_speed:
             return 0
-        return self.get_filtered_speed()
+        return filtered_speed
 
     @feedback
     def get_filtered_motor_speed(self) -> float:
@@ -218,11 +219,12 @@ class Intake:
         using a feedforward controller. Returns the set voltage. Must be
         continually called.
         """
-        if self.position is None:
+        rad = self.get_radians()
+        if rad is None:
             return 0
         return self.set_joint_voltage(
             self.feedforward.calculate(
-                self.get_radians(),
+                rad,
                 units.rotationsToRadians(velocity),
                 units.rotationsToRadians(acceleration),
             )

@@ -2,17 +2,17 @@ import wpilib
 from wpilib.interfaces import MotorController
 from wpilib.drive import DifferentialDrive
 from magicbot import will_reset_to
-from rev import CANSparkBase
+from rev import CANSparkBase, CANSparkMax
 
 import util
 
 
 class Drivetrain:
     # annotate motor and configuration instances
-    front_left_motor: MotorController
-    front_right_motor: MotorController
-    back_left_motor: MotorController
-    back_right_motor: MotorController
+    front_left_motor: CANSparkMax
+    front_right_motor: CANSparkMax
+    back_left_motor: CANSparkMax
+    back_right_motor: CANSparkMax
 
     # values will reset to 0 after every time control loop runs
     forward = will_reset_to(0)

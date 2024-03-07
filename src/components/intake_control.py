@@ -57,7 +57,11 @@ class IntakeControl(StateMachine):
             self.intake.set_joint_setpoint(self.joint_setpoint)
         if not self.intake.is_at_setpoint():
             self.intake.move_to_setpoint()
-        if abs(self.intake.get_position() - self.intake.upper_limit) < self.leniency:
+        intake_position = self.intake.get_position()
+        if (
+            intake_position
+            and abs(intake_position - self.intake.upper_limit) < self.leniency
+        ):
             # change in the future
             if self.intake_trigger:
                 self.intake.intake()

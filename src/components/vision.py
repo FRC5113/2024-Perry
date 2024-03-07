@@ -27,9 +27,9 @@ class Vision:
         self._y_filter = MedianFilter(self.filter_window)
         self._z_filter = MedianFilter(self.filter_window)
 
-        """If no targets are found within a certain window of time, 
-        this component will consider there to be no targets. 
-        This is to prevent momentary lapses in detection from 
+        """If no targets are found within a certain window of time,
+        this component will consider there to be no targets.
+        This is to prevent momentary lapses in detection from
         causing the robot to jerk
         """
         self.drought = self.filter_window
@@ -110,33 +110,36 @@ class Vision:
         return -1
 
     @feedback
-    def get_x(self) -> int:
-        if self.hasTargets():
-            return self.getX()
+    def get_x(self) -> float:
+        x = self.getX()
+        if self.hasTargets() and x is not None:
+            return x
         return 0
 
     @feedback
-    def get_y(self) -> int:
-        if self.hasTargets():
-            return self.getY()
+    def get_y(self) -> float:
+        y = self.getY()
+        if self.hasTargets() and y is not None:
+            return y
         return 0
 
     @feedback
-    def get_z(self) -> int:
-        if self.hasTargets():
-            return self.getZ()
+    def get_z(self) -> float:
+        z = self.getZ()
+        if self.hasTargets() and z is not None:
+            return z
         return 0
 
     @feedback
-    def get_heading(self) -> int:
-        if self.hasTargets():
-            return self.getHeading()
+    def get_heading(self) -> float:
+        heading = self.getHeading()
+        if self.hasTargets() and heading is not None:
+            return heading
         return 0
 
     @feedback
-    def get_adjusted_heading(self) -> int:
-        if self.hasTargets():
-            return self.getAdjustedHeading(
-                np.array([self.getX(), self.getY(), self.getZ()])
-            )
+    def get_adjusted_heading(self) -> float:
+        heading = self.getAdjustedHeading()
+        if self.hasTargets() and heading is not None:
+            return heading
         return 0
