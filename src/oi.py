@@ -8,7 +8,12 @@ class OI_Base:
     def drive_turn(self) -> float:
         return 0
 
-    def shoot(self) -> bool:
+    def soft_shoot(self) -> bool:
+        """Only shoots if predicted to be able to score"""
+        return False
+
+    def hard_shoot(self) -> bool:
+        """Shoots regardless of scoring prediction"""
         return False
 
     def intake(self) -> bool:
@@ -30,6 +35,9 @@ class OI_Base:
         return False
 
     def align(self) -> bool:
+        return False
+
+    def cancel_align(self) -> bool:
         return False
 
     def contract_left_climber(self) -> bool:
@@ -59,8 +67,11 @@ class Double_Xbox_OI(OI_Base):
     def drive_turn(self):
         return -self.xbox1.getRightX()
 
-    def shoot(self):
+    def soft_shoot(self):
         return self.xbox2.getBButton()
+
+    def hard_shoot(self):
+        return self.xbox2.getBButton() and self.xbox2.getAButton()
 
     def intake(self):
         return self.xbox2.getXButton()
@@ -82,6 +93,9 @@ class Double_Xbox_OI(OI_Base):
 
     def align(self):
         return self.xbox1.getXButton()
+
+    def cancel_align(self):
+        return self.xbox1.getBButton()
 
     def contract_left_climber(self):
         return self.xbox2.getLeftBumper()
@@ -106,7 +120,7 @@ class Joystick_OI(OI_Base):
     def drive_turn(self):
         return -self.joystick.getX()
 
-    def shoot(self):
+    def soft_shoot(self):
         return self.joystick.getRawButton(7)
 
     def intake(self):
@@ -126,35 +140,3 @@ class Joystick_OI(OI_Base):
 
     def move_intake(self):
         return self.joystick.getTrigger()
-
-
-class Comp_OI(OI_Base):
-    """Theoretical OI scheme for comp, tailored to the two FSMs"""
-
-    def __init__(
-        self, xbox_port: int = 0, joystick_port: int = 1, deadband: float = 0.1
-    ):
-        self.xbox = wpilib.XboxController(xbox_port)
-        self.joystick = wpilib.Joystick(joystick_port)
-        self.deadband = deadband
-
-    def drive_forward(self):
-        return self.xbox.getLeftY()
-
-    def drive_turn(self):
-        return -self.xbox.getLeftX()
-
-    def shoot(self):
-        return self.joystick.getTrigger()
-
-    def intake(self):
-        return self.joystick.getY() > self.deadband
-
-    def eject(self):
-        return self.joystick.getX() < -self.deadband
-
-    def intake_up(self):
-        return self.joystick.getRawButton(5) or self.joystick.getRawButton(6)
-
-    def intake_down(self):
-        return self.joystick.getRawButton(3) or self.joystick.getRawButton(4)

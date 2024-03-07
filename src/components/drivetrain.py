@@ -42,16 +42,8 @@ class Drivetrain:
             raise Exception(f"Improper value for forward entered: {forward}")
         if not (-1.0 <= turn <= 1.0):
             raise Exception(f"Improper value for turn entered: {turn}")
-        # print(self.front_left_motor.get(), self.back_left_motor.get())
-        # print("R", self.front_right_motor.get(), self.back_right_motor.get())
         self.forward = forward
         self.turn = turn
 
     def execute(self):
         self.drive.arcadeDrive(self.forward, self.turn)
-
-    def test_right(self):
-        self.right_motor_controller_group.set(0.4)
-        # self.drive.arcadeDrive(0.4,0.0)
-        # self.back_right_motor.set(0.2)
-        pass

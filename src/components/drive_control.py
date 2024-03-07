@@ -1,10 +1,9 @@
-import math
 import numpy as np
 
 import wpimath.controller
 import magicbot
 from magicbot.state_machine import state, timed_state
-from magicbot import tunable, will_reset_to
+from magicbot import tunable, will_reset_to, feedback
 import navx
 
 from components.drivetrain import Drivetrain
@@ -31,6 +30,7 @@ class DriveControl(magicbot.StateMachine):
     drive_from_tag_setpoint = tunable(1.2)
 
     align_trigger = will_reset_to(False)
+    manual_tolerance_scalar = tunable(3)
 
     def setup(self):
         # setup() required because tunables need to be fetched
@@ -41,6 +41,21 @@ class DriveControl(magicbot.StateMachine):
             self.turn_to_angle_tP, self.turn_to_angle_tV
         )
         self.turn_to_angle_controller.enableContinuousInput(0, 360)
+
+    @feedback
+    def get_manually_aligned(self):
+        """Returns true if the bot is predicted to be able to score a note
+        based on its distance and angle to the tag. This uses a more
+        generous tolerance than the PIDs.
+        """
+        if not self.vision.hasTargets():
+            return False
+        return (
+            abs(self.vision.get_adjusted_heading())
+            < self.turn_to_angle_tP * self.manual_tolerance_scalar
+            and abs(self.vision.getX() - self.drive_from_tag_setpoint)
+            < self.drive_from_tag_tP * self.manual_tolerance_scalar
+        )
 
     def request_align(self):
         self.align_trigger = True
@@ -72,9 +87,7 @@ class DriveControl(magicbot.StateMachine):
 
     @state(first=True)
     def free(self):
-        """First state -- does nothing to avoid accidents if `engage()`
-        is called without an initial state.
-        """
+        """First state -- arcade drive"""
 
         if self.align_trigger and self.vision.hasTargets():
             self.turn_to_tag()

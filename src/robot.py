@@ -101,83 +101,29 @@ class MyRobot(MagicRobot):
             self.drive_control.engage()
             if self.oi.align():
                 self.drive_control.request_align()
+            if self.oi.cancel_align():
+                self.drive_control.engage(initial_state="free", force=True)
 
-            # if self.oi.shoot():
-            #     self.shooter.intake()
-            #     self.shooter.feed()
-            #     self.shooter.shoot()
-            # if self.oi.intake():
-            #     self.shooter.feed()
-            #     self.intake.intake()
-            #     self.shooter.intake()
-            # if self.oi.eject():
-            #     self.intake.eject()
-            #     self.shooter.eject()
-            # if self.oi.intake_up():
-            #     self.intake.set_joint_setpoint(self.intake.lower_limit)
-            #     # self.intake.set_joint_voltage(1)
-            # if self.oi.intake_down():
-            #     # self.intake.set_joint_voltage(-0.5)
-            #     self.intake.set_joint_setpoint(self.intake.upper_limit)
-            # if self.oi.move_intake():
-            #     self.intake.move_to_setpoint()
-            """Replace the above code with the code below once ready"""
             self.intake_control.engage()
             self.shooter_control.engage()
             if self.intake.get_position() is None:
                 self.intake_control.engage(initial_state="disabled", force=True)
-            if self.oi.shoot():
+            if self.oi.soft_shoot() and self.drive_control.get_manually_aligned():
+                self.shooter_control.request_shoot()
+            if self.oi.hard_shoot():
                 self.shooter_control.request_shoot()
             if self.oi.intake():
                 self.intake_control.request_intake()
                 self.shooter_control.request_intake()
             if self.oi.eject():
                 self.intake_control.request_eject()
-                self.shooter_control.request_eject()
-            if self.oi.intake_up():
-                self.intake_control.request_up()
-            if self.oi.intake_down():
                 self.intake_control.request_down()
-
-    # def testInit(self):
-    #     self.intake.set_joint_voltage(0.001)
-
-    # def testPeriodic(self):
-    #     """This is will find the approximate kS value for a feedforward
-    #     intake controller. It will apply an increasing voltage to the
-    #     joint until it moves up.
-    #     """
-    #     delta = 0.001
-    #     voltage = self.intake.get_joint_voltage()
-    #     if voltage != 0:
-    #         self.intake.set_joint_voltage(voltage + delta)
-    #     if abs(self.intake.get_speed()) > 0.003 and voltage > delta * 10:
-    #         self.intake.set_joint_voltage(0)
-    #         print("!!! ", end="")
-    #     self.intake.execute()
-    #     print(voltage - 5 * delta)
-
-    # @feedback
-    # def get_joint_ready(self) -> bool:
-    #     return self.shooter_control.current_state in [
-    #         "idle",
-    #         "holding",
-    #     ] and self.intake_control.current_state in ["transitioning", "idle", "ready"]
-
-    # @feedback
-    # def get_intake_ready(self) -> bool:
-    #     return self.shooter_control.current_state in [
-    #         "idle",
-    #         "intaking",
-    #     ] and self.intake_control.current_state in ["ready", "intaking"]
-
-    # @feedback
-    # def get_eject_ready(self) -> bool:
-    #     return self.intake_control.current_state in ["ready", "intaking", "ejecting"]
-
-    # @feedback
-    # def get_shoot_ready(self) -> bool:
-    #     return self.shooter_control.current_state in ["holding", "feeding", "shooting"]
+                self.shooter_control.request_eject()
+            if self.shooter_control.current_state == "idle":
+                if not self.oi.intake_down():  # self.oi.intake_up()
+                    self.intake_control.request_up()
+                if self.oi.intake_down():
+                    self.intake_control.request_down()
 
     @feedback
     def get_angle(self) -> float:

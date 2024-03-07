@@ -1,4 +1,4 @@
-from magicbot import StateMachine, will_reset_to
+from magicbot import StateMachine, will_reset_to, tunable
 from magicbot.state_machine import state
 
 from components.intake import Intake
@@ -23,6 +23,7 @@ class IntakeControl(StateMachine):
     # eject_trigger will override intake_trigger
     intake_trigger = will_reset_to(False)
     eject_trigger = will_reset_to(False)
+    leniency = tunable(0.05)
     shooter_state = "idle"
 
     """Control methods
@@ -52,11 +53,18 @@ class IntakeControl(StateMachine):
     # states
     @state(first=True)
     def transitioning(self):
-        if self.shooter_state == "idle" or self.shooter_state == "holding":
-            if self.joint_setpoint != -1:
-                self.intake.set_joint_setpoint(self.joint_setpoint)
-            if not self.intake.is_at_setpoint():
-                self.intake.move_to_setpoint()
+        if self.joint_setpoint != -1:
+            self.intake.set_joint_setpoint(self.joint_setpoint)
+        if not self.intake.is_at_setpoint():
+            self.intake.move_to_setpoint()
+        if abs(self.intake.get_position() - self.intake.upper_limit) < self.leniency:
+            # change in the future
+            if self.intake_trigger:
+                self.intake.intake()
+                self.request_down()
+            if self.eject_trigger:
+                self.intake.eject()
+                self.request_down()
         if self.intake.is_at_setpoint():
             if abs(self.intake.get_joint_setpoint() - self.intake.lower_limit) < 0.001:
                 self.next_state("idle")
@@ -65,12 +73,12 @@ class IntakeControl(StateMachine):
 
     @state
     def idle(self):
-        if self.shooter_state == "idle" or self.shooter_state == "holding":
-            if self.joint_setpoint != -1:
-                self.intake.set_joint_setpoint(self.joint_setpoint)
+        if self.joint_setpoint != -1:
+            self.intake.set_joint_setpoint(self.joint_setpoint)
         if (
             not self.intake.is_at_setpoint()
-            or not abs(self.intake.get_joint_setpoint() - self.intake.lower_limit) < 0.001
+            or not abs(self.intake.get_joint_setpoint() - self.intake.lower_limit)
+            < 0.001
         ):
             self.next_state("transitioning")
 
@@ -82,23 +90,21 @@ class IntakeControl(StateMachine):
         if self.intake_trigger:
             self.next_state("intaking")
             return
-        if self.shooter_state == "idle" or self.shooter_state == "holding":
-            if self.joint_setpoint != -1:
-                self.intake.set_joint_setpoint(self.joint_setpoint)
+        if self.joint_setpoint != -1:
+            self.intake.set_joint_setpoint(self.joint_setpoint)
         if (
             not self.intake.is_at_setpoint()
-            or not abs(self.intake.get_joint_setpoint() - self.intake.upper_limit) < 0.001
+            or not abs(self.intake.get_joint_setpoint() - self.intake.upper_limit)
+            < 0.001
         ):
             self.next_state("transitioning")
 
     @state
     def intaking(self, state_tm):
-        # be careful with state_tm - "may not start at zero????"
         if self.eject_trigger:
             self.next_state("ejecting")
             return
-        if self.shooter_state == "idle" or self.shooter_state == "intaking":
-            self.intake.intake()
+        self.intake.intake()
         if not self.intake_trigger:
             self.next_state("ready")
 

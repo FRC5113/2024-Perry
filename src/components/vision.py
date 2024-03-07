@@ -19,6 +19,7 @@ class Vision:
     _z = 0
     _id = 0
     _latency = 0
+    sought_ids = []
 
     def setup(self):
         # setup() required because variables need to be injected
@@ -34,62 +35,64 @@ class Vision:
         self.drought = self.filter_window
         # ignores camera height
         self.rc = np.array([self.rcx, self.rcy, 0])
+        # CHANGE THIS!!!
+        self.sought_ids = [8]
 
     def hasTargets(self) -> bool:
         return self.drought < self.filter_window
 
-    def getX(self) -> float:
+    def getX(self) -> float | None:
         if self.drought < self.filter_window:
             return self._x
         return None
 
-    def getY(self) -> float:
+    def getY(self) -> float | None:
         if self.drought < self.filter_window:
             return self._y
         return None
 
-    def getZ(self) -> float:
+    def getZ(self) -> float | None:
         if self.drought < self.filter_window:
             return self._z
         return None
 
-    def getId(self) -> int:
+    def getId(self) -> int | None:
         if self.drought < self.filter_window:
             return self._id
         return None
 
-    def getLatency(self) -> float:
+    def getLatency(self) -> float | None:
         if self.drought < self.filter_window:
             return self._latency
         return None
 
     # returns angle that robot must turn to face tag
-    def getHeading(self) -> float:
+    def getHeading(self) -> float | None:
         if self.drought < self.filter_window:
             return math.atan2(-self._y, self._x) * 180 / math.pi
         return None
 
-    def getAdjustedHeading(self, ct: np.array):
-        """rc -- robot to camera vector
-        ct -- camera to tag vector
-        """
-        rt = self.rc + ct
-        theta = math.atan2(rt[1], rt[0])
-        theta *= 180 / math.pi
-        # d = np.cross(rt, self.rc)[2]
-        # if d > 0:
-        #     return theta
-        # elif d < 0:
-        #     return -theta
-        # else:
-        #     return 0
-        return -theta
+    def getAdjustedHeading(self) -> float | None:
+        """Returns the angle from the center of the robot to the tag"""
+        if self.drought < self.filter_window:
+            ct = np.array([self._x, self._y, self._z])
+            rt = self.rc + ct
+            theta = math.atan2(rt[1], rt[0])
+            theta *= 180 / math.pi
+            return -theta
+        return None
+
+    def setSoughtIds(self, sought_ids):
+        self.sought_ids = sought_ids
 
     def execute(self):
         result = self.camera.getLatestResult()
         if result.hasTargets():
             self.drought = 0
-            target = min(result.getTargets(), key=lambda t: t.getPoseAmbiguity())
+            potential_targets = filter(
+                lambda t: t.getFiducialId() in self.sought_ids, result.getTargets()
+            )
+            target = min(potential_targets, key=lambda t: t.getPoseAmbiguity())
             transform = target.getBestCameraToTarget()
             self._id = target.getFiducialId()
             self._latency = result.getLatencyMillis() / 1000
