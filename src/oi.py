@@ -28,21 +28,30 @@ class OI_Base:
 
     def move_intake(self) -> bool:
         return False
-    
+
     def align(self) -> bool:
         return False
-    
-    def contract_climbers(self) -> bool:
+
+    def contract_left_climber(self) -> bool:
         return False
-    
-    def extend_climbers(self) -> bool:
+
+    def contract_right_climber(self) -> bool:
+        return False
+
+    def extend_left_climber(self) -> bool:
+        return False
+
+    def extend_right_climber(self) -> bool:
         return False
 
 
 class Double_Xbox_OI(OI_Base):
-    def __init__(self, xbox_port_1: int = 0, xbox_port_2: int = 1):
+    def __init__(
+        self, xbox_port_1: int = 0, xbox_port_2: int = 1, deadband: float = 0.1
+    ):
         self.xbox1 = wpilib.XboxController(xbox_port_1)
         self.xbox2 = wpilib.XboxController(xbox_port_2)
+        self.deadband = deadband
 
     def drive_forward(self):
         return self.xbox1.getLeftY()
@@ -63,24 +72,28 @@ class Double_Xbox_OI(OI_Base):
         return self.xbox2.getYButton()
 
     def intake_up(self):
-        return self.xbox2.getLeftY() > 0.1
+        return self.xbox2.getLeftY() < -self.deadband
 
     def intake_down(self):
-        return self.xbox2.getLeftY() < -0.1
+        return self.xbox2.getLeftY() > self.deadband
 
     def move_intake(self):
         return self.xbox2.getLeftBumper()
 
     def align(self):
         return self.xbox1.getXButton()
-    
-    def contract_climbers(self):
-        return self.xbox1.getAButton()
-    
-    def extend_climbers(self):
-        return self.xbox1.getBButton()
-    
 
+    def contract_left_climber(self):
+        return self.xbox2.getLeftBumper()
+
+    def contract_right_climber(self):
+        return self.xbox2.getRightBumper()
+
+    def extend_left_climber(self):
+        return self.xbox2.getLeftTriggerAxis() > self.deadband
+
+    def extend_right_climber(self):
+        return self.xbox2.getRightTriggerAxis() > self.deadband
 
 
 class Joystick_OI(OI_Base):

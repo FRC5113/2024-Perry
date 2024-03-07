@@ -58,9 +58,9 @@ class IntakeControl(StateMachine):
             if not self.intake.is_at_setpoint():
                 self.intake.move_to_setpoint()
         if self.intake.is_at_setpoint():
-            if self.intake.get_joint_setpoint() == self.intake.lower_limit:
+            if abs(self.intake.get_joint_setpoint() - self.intake.lower_limit) < 0.001:
                 self.next_state("idle")
-            if self.intake.get_joint_setpoint() == self.intake.upper_limit:
+            if abs(self.intake.get_joint_setpoint() - self.intake.upper_limit) < 0.001:
                 self.next_state("ready")
 
     @state
@@ -70,7 +70,7 @@ class IntakeControl(StateMachine):
                 self.intake.set_joint_setpoint(self.joint_setpoint)
         if (
             not self.intake.is_at_setpoint()
-            or not self.intake.get_joint_setpoint() == self.intake.lower_limit
+            or not abs(self.intake.get_joint_setpoint() - self.intake.lower_limit) < 0.001
         ):
             self.next_state("transitioning")
 
@@ -87,7 +87,7 @@ class IntakeControl(StateMachine):
                 self.intake.set_joint_setpoint(self.joint_setpoint)
         if (
             not self.intake.is_at_setpoint()
-            or not self.intake.get_joint_setpoint() == self.intake.upper_limit
+            or not abs(self.intake.get_joint_setpoint() - self.intake.upper_limit) < 0.001
         ):
             self.next_state("transitioning")
 

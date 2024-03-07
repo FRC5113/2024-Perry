@@ -42,8 +42,8 @@ class MyRobot(MagicRobot):
 
         self.gyro = AHRS.create_spi()
 
-        self.climber_left_motor = WPI_TalonSRX(62)
-        self.climber_right_motor = WPI_TalonSRX(61)
+        self.climber_left_motor = WPI_TalonSRX(61)
+        self.climber_right_motor = WPI_TalonSRX(62)
 
         self.drivetrain_front_left_motor = CANSparkMax(5, BRUSHLESS)
         self.drivetrain_front_right_motor = CANSparkMax(50, BRUSHLESS)
@@ -72,7 +72,7 @@ class MyRobot(MagicRobot):
         self.oi = oi.Double_Xbox_OI()
 
         self.drive_curve = util.cubic_curve(
-            scalar=0.3, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
+            scalar=0.5, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
         )
         self.turn_curve = util.cubic_curve(
             scalar=0.5, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
@@ -84,18 +84,23 @@ class MyRobot(MagicRobot):
         self.shooter_control.update_intake_state(self.intake_control.current_state)
 
         with self.consumeExceptions():
-            self.drivetrain.arcade_drive(
+            self.drive_control.arcade_drive(
                 self.drive_curve(self.oi.drive_forward()),
                 self.turn_curve(self.oi.drive_turn()),
             )
 
-            if self.oi.contract_climbers():
-                self.climber.contract()
-            if self.oi.extend_climbers():
-                self.climber.extend()
+            if self.oi.contract_left_climber():
+                self.climber.contract_left()
+            if self.oi.contract_right_climber():
+                self.climber.contract_right()
+            if self.oi.extend_left_climber():
+                self.climber.extend_left()
+            if self.oi.extend_right_climber():
+                self.climber.extend_right()
 
-            # if self.oi.align():
-            #     self.drive_control.request_align()
+            self.drive_control.engage()
+            if self.oi.align():
+                self.drive_control.request_align()
 
             # if self.oi.shoot():
             #     self.shooter.intake()
@@ -173,7 +178,7 @@ class MyRobot(MagicRobot):
     # @feedback
     # def get_shoot_ready(self) -> bool:
     #     return self.shooter_control.current_state in ["holding", "feeding", "shooting"]
-    
+
     @feedback
     def get_angle(self) -> float:
         return self.gyro.getAngle()

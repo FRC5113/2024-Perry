@@ -1,7 +1,7 @@
 from wpilib import MotorControllerGroup, DutyCycleEncoder
 from wpilib.interfaces import MotorController
 from magicbot import tunable, will_reset_to, feedback
-from wpimath import controller, units, filter
+from wpimath import controller, units, filter, trajectory
 
 import util
 
@@ -34,9 +34,13 @@ class Intake:
     lower_limit = 0.0
     upper_limit = 0.39
     horizontal_offset = 0.27
-    joint_kP = tunable(0.25)
+    joint_kP = tunable(1.5)
+    joint_max_velocity = tunable(0.5)
+    joint_max_acceleration = tunable(1)
     # replace this with a ProfiledPIDController
-    joint_PID = controller.PIDController(0, 0, 0)
+    joint_PID = controller.ProfiledPIDController(
+        0, 0, 0, trajectory.TrapezoidProfile.Constraints(0, 0)
+    )
     joint_voltage = will_reset_to(0)
     feedforward = controller.ArmFeedforward(0.24, 0.42, 0.78, 0.01)
     position = 0
@@ -58,7 +62,12 @@ class Intake:
         )
 
         self.joint_PID.setP(self.joint_kP)
-        self.joint_PID.setSetpoint(self.lower_limit)
+        self.joint_PID.setConstraints(
+            trajectory.TrapezoidProfile.Constraints(
+                self.joint_max_velocity, self.joint_max_acceleration
+            )
+        )
+        self.joint_PID.setGoal(self.lower_limit)
         self.joint_PID.setTolerance(0.05)
         self.joint_PID.enableContinuousInput(0, 1)
 
@@ -149,7 +158,7 @@ class Intake:
         if self.position is None:
             return 0
         return self.get_filtered_speed()
-    
+
     @feedback
     def get_filtered_motor_speed(self) -> float:
         """Call continuously"""
@@ -182,10 +191,10 @@ class Intake:
     @feedback
     def get_joint_setpoint(self) -> float:
         """Returns setpoint of the PID controller for the joint"""
-        return self.joint_PID.getSetpoint()
+        return self.joint_PID.getGoal().position
 
     def is_at_setpoint(self) -> bool:
-        return self.joint_PID.atSetpoint()
+        return self.joint_PID.atGoal()
 
     def has_note(self) -> bool:
         """Returns `True` if a note is detected in the intake. This is
@@ -220,7 +229,7 @@ class Intake:
         )
 
     def set_joint_setpoint(self, setpoint: units.turns):
-        self.joint_PID.setSetpoint(setpoint)
+        self.joint_PID.setGoal(setpoint)
 
     def move_to_setpoint(self):
         """Uses the PID controller to find a speed for the joint based
@@ -234,8 +243,8 @@ class Intake:
         (when kI=kD=0), the input acceleration should in theory be
         the velocity error times kP. (Might be completely wrong)
         """
-        acceleration = -self.joint_kP * self.joint_PID.getVelocityError()
-        if self.joint_PID.atSetpoint():
+        acceleration = self.joint_PID.getSetpoint().velocity
+        if self.joint_PID.atGoal():
             output = 0
             acceleration = 0
         print(
@@ -257,6 +266,11 @@ class Intake:
     def execute(self):
         self.last_position = self.position
         self.joint_PID.setP(self.joint_kP)
+        self.joint_PID.setConstraints(
+            trajectory.TrapezoidProfile.Constraints(
+                self.joint_max_velocity, self.joint_max_acceleration
+            )
+        )
         if self.belt_intaking and self.belt_ejecting:
             self.belt_intaking = False
 
@@ -300,11 +314,11 @@ class Intake:
     @feedback
     def get_pid_at_setpoint(self):
         return self.is_at_setpoint()
-    
-    @feedback 
+
+    @feedback
     def get_motor_speed(self):
         return abs(self.belt_motor.get_velocity().value)
-    
+
     @feedback
     def get_has_note(self):
         return self.has_note()

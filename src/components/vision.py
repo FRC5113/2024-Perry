@@ -10,7 +10,7 @@ class Vision:
     camera: PhotonCamera
     # size of filter window: larger values are less accurate but better at filtering
     filter_window: int
-    #vector from center of robot to camera
+    # vector from center of robot to camera
     rcx: float
     rcy: float
 
@@ -32,7 +32,8 @@ class Vision:
         causing the robot to jerk
         """
         self.drought = self.filter_window
-        self.rc = np.array([self.rcx, self.rcy])
+        # ignores camera height
+        self.rc = np.array([self.rcx, self.rcy, 0])
 
     def hasTargets(self) -> bool:
         return self.drought < self.filter_window
@@ -67,21 +68,22 @@ class Vision:
         if self.drought < self.filter_window:
             return math.atan2(-self._y, self._x) * 180 / math.pi
         return None
-    
-    def get_adjusted_heading(self, ct: np.array):
+
+    def getAdjustedHeading(self, ct: np.array):
         """rc -- robot to camera vector
         ct -- camera to tag vector
         """
         rt = self.rc + ct
-        theta = math.acos(np.dot(self.rc, rt) / (np.linalg.norm(self.rc) * np.linalg.norm(rt)))
+        theta = math.atan2(rt[1], rt[0])
         theta *= 180 / math.pi
-        d = np.cross(rt, self.rc)[2]
-        if d > 0:
-            return theta
-        elif d < 0:
-            return -theta
-        else:
-            return 0
+        # d = np.cross(rt, self.rc)[2]
+        # if d > 0:
+        #     return theta
+        # elif d < 0:
+        #     return -theta
+        # else:
+        #     return 0
+        return -theta
 
     def execute(self):
         result = self.camera.getLatestResult()
@@ -126,4 +128,12 @@ class Vision:
     def get_heading(self) -> int:
         if self.hasTargets():
             return self.getHeading()
+        return 0
+
+    @feedback
+    def get_adjusted_heading(self) -> int:
+        if self.hasTargets():
+            return self.getAdjustedHeading(
+                np.array([self.getX(), self.getY(), self.getZ()])
+            )
         return 0

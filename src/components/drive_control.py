@@ -20,15 +20,15 @@ class DriveControl(magicbot.StateMachine):
     # variables to be injected
     gyro: navx.AHRS
 
-    turn_to_angle_kP = tunable(0.025)
+    turn_to_angle_kP = tunable(0.04)
     turn_to_angle_kI = tunable(0)
-    turn_to_angle_kD = tunable(0.003)
+    turn_to_angle_kD = tunable(0)
     turn_to_angle_tP = tunable(5)
     turn_to_angle_tV = tunable(0.1)
 
-    drive_from_tag_kP = tunable(2)
+    drive_from_tag_kP = tunable(4)
     drive_from_tag_tP = tunable(0.1)
-    drive_from_tag_setpoint = tunable(0.3)
+    drive_from_tag_setpoint = tunable(1.2)
 
     align_trigger = will_reset_to(False)
 
@@ -63,21 +63,21 @@ class DriveControl(magicbot.StateMachine):
         if not self.vision.hasTargets():
             return
         ct = np.array([self.vision.getX(), self.vision.getY(), self.vision.getZ()])
-        latency = self.vision.getLatency()
-        turn_rate = self.gyro.getRate()
-        theta = self.vision.get_adjusted_heading(ct) - latency * turn_rate
-        if self.turn_to_angle_controller.atSetpoint():
-            theta = 0
-        if self.vision.hasTargets():
-            self.set_angle(self.gyro.getAngle() + theta)
+        # latency = self.vision.getLatency()
+        # turn_rate = self.gyro.getRate()
+        theta = self.vision.getAdjustedHeading(ct)  # - latency * turn_rate
+        # if self.turn_to_angle_controller.atSetpoint():
+        #     theta = 0
+        self.set_angle(self.gyro.getAngle() + theta)
 
     @state(first=True)
     def free(self):
         """First state -- does nothing to avoid accidents if `engage()`
         is called without an initial state.
         """
-        
+
         if self.align_trigger and self.vision.hasTargets():
+            self.turn_to_tag()
             self.next_state("aligning")
 
     @timed_state(duration=5.0, next_state="spacing")
@@ -88,7 +88,7 @@ class DriveControl(magicbot.StateMachine):
         if not self.vision.hasTargets():
             self.next_state("free")
             return
-        
+
         self.turn_to_angle_controller.setPID(
             self.turn_to_angle_kP, self.turn_to_angle_kI, self.turn_to_angle_kD
         )
@@ -96,10 +96,11 @@ class DriveControl(magicbot.StateMachine):
             self.turn_to_angle_tP, self.turn_to_angle_tV
         )
 
-        self.turn_to_tag()
-
         measurement = self.gyro.getAngle()
         output = self.turn_to_angle_controller.calculate(measurement)
+        print(
+            f"r: {self.turn_to_angle_controller.getSetpoint()}, y: {measurement}, e: {self.turn_to_angle_controller.getPositionError()}, u: {output}"
+        )
         """Here (and elsewhere) the output is negated because a positive turn
         value in `arcade_drive()` corresponds with a decrease in angle.
         This could also be fixed with negative PID values, but this is not
@@ -120,6 +121,6 @@ class DriveControl(magicbot.StateMachine):
         measurement = self.vision.getX()
         error = self.drive_from_tag_setpoint - measurement
         output = error * self.drive_from_tag_kP
-        self.drivetrain.arcade_drive(util.clamp(output, -0.3, 0.3), 0)
+        self.drivetrain.arcade_drive(util.clamp(-output, -0.3, 0.3), 0)
         if abs(error) < self.drive_from_tag_tP:
             self.next_state("free")

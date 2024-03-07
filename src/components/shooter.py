@@ -91,7 +91,7 @@ class Shooter:
     @feedback
     def get_motor_speed(self):
         return abs(self.belt_encoder.getVelocity())
-    
+
     @feedback
     def get_has_note(self):
         return self.has_note()
