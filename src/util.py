@@ -15,6 +15,14 @@ def clamp(value: float, min_value: float, max_value: float) -> float:
     return max(min(value, max_value), min_value)
 
 
+def compensate(args: list[float | None]) -> float | None:
+    """Finds the average of all non-None values in `args`"""
+    values = list(filter(lambda i: i is not None, args))
+    if len(values) == 0:
+        return None
+    return sum(values) / len(values)
+
+
 def cyclic_distance(a: float, b: float, max_value: float = 1.0) -> float:
     """Calculates distance between two values (`a` and `b`) over a
     cyclic space. This is useful for things like encoders

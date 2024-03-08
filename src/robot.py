@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import numpy as np
+
 import wpilib
 from wpilib import DutyCycleEncoder, DigitalInput
 from wpimath import controller
@@ -15,7 +17,7 @@ from components.intake import Intake
 from components.intake_control import IntakeControl
 from components.shooter import Shooter
 from components.shooter_control import ShooterControl
-from components.vision import Vision
+from components.vision import Vision, SmartCamera
 import oi
 import util
 
@@ -62,10 +64,11 @@ class MyRobot(MagicRobot):
         self.shooter_shooter_left_motor = CANSparkMax(53, BRUSHLESS)
         self.shooter_shooter_right_motor = CANSparkMax(54, BRUSHLESS)
 
-        self.vision_camera = PhotonCamera("Global_Shutter_Camera")
-        self.vision_filter_window = 10
-        self.vision_rcx = 0.3556
-        self.vision_rcy = 0.2159
+        # CHANGE THE SOUGHT_IDS BEFORE COMP!!!!!!!!!!
+        self.vision_left_camera = SmartCamera(
+            "Global_Shutter_Camera", np.array([0.3556, 0.2159]), sought_ids=[8]
+        )
+        self.vision_right_camera = SmartCamera("", np.array([0, 0]), sought_ids=[8])
 
         self.oi = oi.Double_Xbox_OI()
 
