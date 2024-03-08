@@ -2,13 +2,13 @@
 import numpy as np
 
 import wpilib
-from wpilib import DutyCycleEncoder, DigitalInput
-from wpimath import controller
+from wpilib import DutyCycleEncoder, DigitalInput, Timer, RobotBase
 from navx import AHRS
 from phoenix5 import WPI_TalonSRX
 from rev import CANSparkMax, CANSparkLowLevel
-from photonlibpy.photonCamera import PhotonCamera
-from magicbot import MagicRobot, tunable, feedback
+
+# from photonlibpy.photonCamera import PhotonCamera
+from magicbot import MagicRobot, feedback
 
 from components.climber import Climber
 from components.drivetrain import Drivetrain
@@ -70,7 +70,10 @@ class MyRobot(MagicRobot):
         )
         self.vision_right_camera = SmartCamera("", np.array([0, 0]), sought_ids=[8])
 
-        self.oi = oi.Double_Xbox_OI()
+        if RobotBase.isReal():
+            self.oi = oi.Double_Xbox_OI()
+        else:
+            self.oi = oi.Sim_OI()
 
         self.drive_curve = util.cubic_curve(
             scalar=0.5, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
@@ -125,6 +128,11 @@ class MyRobot(MagicRobot):
                     self.intake_control.request_up()
                 if self.oi.intake_down():
                     self.intake_control.request_down()
+
+    @feedback
+    def match_time(self) -> float:
+        """Return approx. match time for dashboard use, less a second for urgancy"""
+        return Timer.getMatchTime() - 1
 
     @feedback
     def get_angle(self) -> float:

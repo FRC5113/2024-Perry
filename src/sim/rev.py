@@ -1,0 +1,2 @@
+class SimSparkMax:
+    pass
