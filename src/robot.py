@@ -2,7 +2,7 @@
 import numpy as np
 
 import wpilib
-from wpilib import DutyCycleEncoder, DigitalInput
+from wpilib import DutyCycleEncoder, DigitalInput, DriverStation
 from wpimath import controller
 from navx import AHRS
 from phoenix5 import WPI_TalonSRX
@@ -54,8 +54,8 @@ class MyRobot(MagicRobot):
         self.intake_joint_right_motor = CANSparkMax(3, BRUSHLESS)
         self.intake_left_encoder = DutyCycleEncoder(DigitalInput(0))
         self.intake_right_encoder = DutyCycleEncoder(DigitalInput(1))
-        self.intake_left_encoder_offset = 0.886  # 0.90
-        self.intake_right_encoder_offset = 0.359  # 0.38
+        self.intake_left_encoder_offset = 0.882
+        self.intake_right_encoder_offset = 0.198
         self.intake_belt_motor = util.WPI_TalonFX(6)
 
         self.shooter_belt_motor = CANSparkMax(55, BRUSHLESS)
@@ -65,19 +65,24 @@ class MyRobot(MagicRobot):
         self.shooter_shooter_right_motor = CANSparkMax(54, BRUSHLESS)
 
         # CHANGE THE SOUGHT_IDS BEFORE COMP!!!!!!!!!!
-        self.vision_left_camera = SmartCamera(
-            "Global_Shutter_Camera", np.array([0.3556, 0.2159]), sought_ids=[8]
+        self.vision_right_camera = SmartCamera(
+            "Global_Shutter_Camera", np.array([0.3556, 0.2159, 0]), tilt=31
         )
-        self.vision_right_camera = SmartCamera("", np.array([0, 0]), sought_ids=[8])
+        self.vision_left_camera = SmartCamera(
+            "USB_Camera", np.array([0.3556, -0.2159, 0]), tilt=31
+        )
 
         self.oi = oi.Double_Xbox_OI()
 
         self.drive_curve = util.cubic_curve(
-            scalar=0.5, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
+            scalar=0.8, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
         )
         self.turn_curve = util.cubic_curve(
             scalar=0.5, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
         )
+
+    def autonomousInit(self):
+        self.gyro.reset()
 
     def teleopPeriodic(self):
         self.intake.update_position()
@@ -85,10 +90,16 @@ class MyRobot(MagicRobot):
         self.shooter_control.update_intake_state(self.intake_control.current_state)
 
         with self.consumeExceptions():
-            self.drive_control.arcade_drive(
-                self.drive_curve(self.oi.drive_forward()),
-                self.turn_curve(self.oi.drive_turn()),
-            )
+            if abs(self.intake.get_joint_setpoint() - self.intake.lower_limit) < 0.001:
+                self.drive_control.arcade_drive(
+                    self.drive_curve(self.oi.drive_forward()),
+                    self.turn_curve(self.oi.drive_turn()),
+                )
+            else:
+                self.drive_control.arcade_drive(
+                    0.5 * self.drive_curve(self.oi.drive_forward()),
+                    0.8 * self.turn_curve(self.oi.drive_turn()),
+                )
 
             if self.oi.contract_left_climber():
                 self.climber.contract_left()
@@ -109,6 +120,10 @@ class MyRobot(MagicRobot):
             self.shooter_control.engage()
             if self.intake.get_position() is None:
                 self.intake_control.engage(initial_state="disabled", force=True)
+            if self.oi.override_intake_disable():
+                self.intake_control.engage(initial_state="transitioning", force=True)
+            if self.oi.source_intake():
+                self.shooter.source_intake()
             if self.oi.soft_shoot() and self.drive_control.get_manually_aligned():
                 self.shooter_control.request_shoot()
             if self.oi.hard_shoot():

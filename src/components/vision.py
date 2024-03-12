@@ -19,11 +19,24 @@ class SmartCamera(PhotonCamera):
         self,
         camera_name: str,
         rc: np.array,
+        tilt: float = 0,
         filter_window: int = 10,
         sought_ids: list[int] = [],
     ):
+        """Parameters:
+        camera_name -- name of camera in PhotonVision
+        rc -- vector from center of robot to camera. z-coord ignored
+        tilt -- pitch of camera in degrees. Tilt up is positive
+        filter_window -- size of window on MedianFilters. Also the
+            number of ticks until a tag is considered lost. Higher
+            values yielf less noisy and spotty data but with less
+            accuracy and precision and higher latency.
+        sought_ids -- tag ids the camera will look for. Tags that it
+            finds with non-sought ids will be ignored.
+        """
         PhotonCamera.__init__(self, camera_name)
         self.rc = rc
+        self.tilt = tilt
         self.filter_window = filter_window
         self.x = 0
         self.y = 0
@@ -40,16 +53,25 @@ class SmartCamera(PhotonCamera):
         result = self.getLatestResult()
         if result.hasTargets():
             self.drought = 0
-            potential_targets = filter(
-                lambda t: t.getFiducialId() in self.sought_ids, result.getTargets()
+            potential_targets = list(
+                filter(
+                    lambda t: t.getFiducialId() in self.sought_ids, result.getTargets()
+                )
             )
+            if len(potential_targets) == 0:
+                self.drought += 1
+                return
             target = min(potential_targets, key=lambda t: t.getPoseAmbiguity())
             transform = target.getBestCameraToTarget()
             self.id = target.getFiducialId()
             self.latency = result.getLatencyMillis() / 1000
-            self.x = self.x_filter.calculate(transform.X())
-            self.y = self.y_filter.calculate(transform.Y())
-            self.z = self.z_filter.calculate(transform.Z())
+            u = transform.X()
+            v = transform.Y()
+            w = transform.Z()
+            theta = self.tilt * math.pi / 180
+            self.x = self.x_filter.calculate(u * math.cos(theta) - w * math.sin(theta))
+            self.y = self.y_filter.calculate(v)
+            self.z = self.z_filter.calculate(u * math.sin(theta) + w * math.cos(theta))
         else:
             self.drought += 1
 
@@ -105,6 +127,8 @@ class Vision:
     left_camera: SmartCamera
     right_camera: SmartCamera
 
+    sought_ids = []
+
     def setup(self):
         self.cameras = [self.left_camera, self.right_camera]
 
@@ -131,31 +155,45 @@ class Vision:
         return compensate([cam.getAdjustedHeading() for cam in self.cameras])
 
     def setSoughtIds(self, sought_ids):
-        for cam in self.cameras:
-            cam.setSoughtIds(sought_ids)
+        self.sought_ids = sought_ids
 
     def execute(self):
         for cam in self.cameras:
+            cam.setSoughtIds(self.sought_ids)
             cam.update()
 
-    @feedback
-    def get_left_id(self) -> int:
-        id = self.left_camera.getId()
-        if id is not None:
-            return id
-        return -1
+    # @feedback
+    # def get_left_id(self) -> int:
+    #     id = self.left_camera.getId()
+    #     if id is not None:
+    #         return id
+    #     return -1
 
-    @feedback
-    def get_right_id(self) -> int:
-        id = self.right_camera.getId()
-        if id is not None:
-            return id
-        return -1
+    # @feedback
+    # def get_right_id(self) -> int:
+    #     id = self.right_camera.getId()
+    #     if id is not None:
+    #         return id
+    #     return -1
 
     @feedback
     def get_x(self) -> float:
         x = self.getX()
         if self.hasTargets() and x is not None:
+            return x
+        return 0
+
+    @feedback
+    def get_left_x(self) -> float:
+        x = self.left_camera.getX()
+        if self.hasTargets():
+            return x
+        return 0
+
+    @feedback
+    def get_right_x(self) -> float:
+        x = self.right_camera.getX()
+        if self.hasTargets():
             return x
         return 0
 

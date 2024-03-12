@@ -1,5 +1,6 @@
 import numpy as np
 
+from wpilib import DriverStation
 import wpimath.controller
 import magicbot
 from magicbot.state_machine import state, timed_state
@@ -22,12 +23,13 @@ class DriveControl(magicbot.StateMachine):
     turn_to_angle_kP = tunable(0.04)
     turn_to_angle_kI = tunable(0)
     turn_to_angle_kD = tunable(0)
-    turn_to_angle_tP = tunable(5)
+    turn_to_angle_tP = tunable(4)
     turn_to_angle_tV = tunable(0.1)
 
-    drive_from_tag_kP = tunable(4)
-    drive_from_tag_tP = tunable(0.1)
-    drive_from_tag_setpoint = tunable(1.2)
+    drive_from_tag_kP = tunable(1)
+    drive_from_tag_kI = tunable(0.01)
+    drive_from_tag_tP = tunable(0.07)
+    drive_from_tag_setpoint = tunable(1.1)
 
     align_trigger = will_reset_to(False)
     manual_tolerance_scalar = tunable(3)
@@ -41,6 +43,11 @@ class DriveControl(magicbot.StateMachine):
             self.turn_to_angle_tP, self.turn_to_angle_tV
         )
         self.turn_to_angle_controller.enableContinuousInput(0, 360)
+        self.drive_from_tag_controller = wpimath.controller.PIDController(
+            self.drive_from_tag_kP, self.drive_from_tag_kI, 0
+        )
+        self.turn_to_angle_controller.setTolerance(self.drive_from_tag_tP)
+        self.vision.setSoughtIds([1, 4, 7])
 
     @feedback
     def get_manually_aligned(self):
@@ -96,7 +103,7 @@ class DriveControl(magicbot.StateMachine):
             self.turn_to_tag()
             self.next_state("aligning")
 
-    @timed_state(duration=5.0, next_state="spacing")
+    @state
     def aligning(self):
         """State in which robot uses a PID controller to turn to a certain
         angle using sensor data from the gyroscope.
@@ -114,15 +121,13 @@ class DriveControl(magicbot.StateMachine):
 
         measurement = self.gyro.getAngle()
         output = self.turn_to_angle_controller.calculate(measurement)
-        print(
-            f"r: {self.turn_to_angle_controller.getSetpoint()}, y: {measurement}, e: {self.turn_to_angle_controller.getPositionError()}, u: {output}"
-        )
+
         """Here (and elsewhere) the output is negated because a positive turn
         value in `arcade_drive()` corresponds with a decrease in angle.
         This could also be fixed with negative PID values, but this is not
         recommended.
         """
-        self.drivetrain.arcade_drive(0, util.clamp(-output, -0.3, 0.3))
+        self.drivetrain.arcade_drive(0, util.clamp(-output, -0.5, 0.5))
         if self.turn_to_angle_controller.atSetpoint():
             self.next_state("spacing")
 
@@ -131,14 +136,22 @@ class DriveControl(magicbot.StateMachine):
         """State in which robot drives forward or backward so that it is
         a set distance away from a detected Apriltag
         """
+        self.drive_from_tag_controller.setPID(
+            self.drive_from_tag_kP, self.drive_from_tag_kI, 0
+        )
+        self.drive_from_tag_controller.setSetpoint(self.drive_from_tag_setpoint)
         if not self.vision.hasTargets():
             self.next_state("free")
             return
         measurement = self.vision.getX()
         if measurement is None:
             return
-        error = self.drive_from_tag_setpoint - measurement
-        output = error * self.drive_from_tag_kP
-        self.drivetrain.arcade_drive(util.clamp(-output, -0.3, 0.3), 0)
+        output = self.drive_from_tag_controller.calculate(measurement)
+        print(
+            f"r: {self.drive_from_tag_controller.getSetpoint()}, y: {measurement}, e: {self.turn_to_angle_controller.getPositionError()}, u: {output}"
+        )
+        self.drivetrain.arcade_drive(util.clamp(-output, -0.5, 0.5), 0)
+        error = self.drive_from_tag_controller.getPositionError()
         if abs(error) < self.drive_from_tag_tP:
+            self.drivetrain.arcade_drive(-error * 5, 0)  # change this later
             self.next_state("free")

@@ -73,7 +73,7 @@ class ShooterControl(StateMachine):
     def loading(self):
         self.shooter.feed_out()
 
-    @timed_state(duration=0.25, next_state="shooting")
+    @timed_state(duration=0.75, next_state="shooting")
     def preshooting(self):
         self.shooter.shoot()
 

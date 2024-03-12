@@ -8,9 +8,9 @@ class Leave(AutonomousStateMachine):
 
     drivetrain: Drivetrain
 
-    @timed_state(duration=3, first=True, next_state="stopped")
+    @timed_state(duration=2, first=True, next_state="stopped")
     def leaving(self):
-        self.drivetrain.arcade_drive(0.5, 0)
+        self.drivetrain.arcade_drive(-0.5, 0)
 
     @state
     def stopped(self):

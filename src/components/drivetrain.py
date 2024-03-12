@@ -46,4 +46,5 @@ class Drivetrain:
         self.turn = turn
 
     def execute(self):
+        print(self.forward)
         self.drive.arcadeDrive(self.forward, self.turn)

@@ -103,6 +103,12 @@ class Double_Xbox_OI(OI_Base):
     def extend_right_climber(self):
         return self.xbox2.getRightTriggerAxis() > self.deadband
 
+    def source_intake(self):
+        return self.xbox2.getStartButton()
+
+    def override_intake_disable(self):
+        return self.xbox1.getStartButton()
+
 
 class Joystick_OI(OI_Base):
     def __init__(self, joystick_port: int = 1):

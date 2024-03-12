@@ -16,11 +16,12 @@ class Shooter:
 
     belt_intaking = will_reset_to(False)
     belt_ejecting = will_reset_to(False)
-    belt_speed = tunable(0.3)
+    belt_speed = tunable(0.5)
     feeding_in = will_reset_to(False)
     feeding_out = will_reset_to(False)
     feed_speed = tunable(-0.3)
     shooter_enabled = will_reset_to(False)
+    source_intaking = will_reset_to(False)
     shooter_speed = tunable(1)
     note_detection_threshold = tunable(3000)
     motor_speed_filter = MedianFilter(5)
@@ -57,6 +58,9 @@ class Shooter:
     def shoot(self):
         self.shooter_enabled = True
 
+    def source_intake(self):
+        self.source_intaking = True
+
     def feed_in(self):
         self.feeding_in = True
 
@@ -85,6 +89,8 @@ class Shooter:
 
         if self.shooter_enabled:
             self.shooter_motor_group.set(self.shooter_speed)
+        elif self.source_intaking:
+            self.shooter_motor_group.set(-0.3)
         else:
             self.shooter_motor_group.set(0)
 

@@ -34,7 +34,7 @@ class Intake:
     lower_limit = 0.0
     upper_limit = 0.39
     horizontal_offset = 0.27
-    joint_kP = tunable(1.5)
+    joint_kP = tunable(2)
     joint_max_velocity = tunable(0.5)
     joint_max_acceleration = tunable(1)
     # replace this with a ProfiledPIDController
@@ -50,7 +50,7 @@ class Intake:
     max_pid_mag = tunable(0.2)
     belt_intaking = will_reset_to(False)
     belt_ejecting = will_reset_to(False)
-    belt_speed = tunable(-0.3)
+    belt_speed = tunable(-0.5)
     encoder_error_tolerance = 0.1
     note_detection_threshold = tunable(20)
     disabled = False
@@ -110,6 +110,15 @@ class Intake:
         a = self.get_left_position()
         b = self.get_right_position()
         position = None
+
+        if not self.left_encoder.isConnected() and not self.right_encoder.isConnected():
+            return position
+        if not self.left_encoder.isConnected():
+            position = b
+            return position
+        if not self.right_encoder.isConnected():
+            position = a
+            return position
         if abs(a - b) <= self.encoder_error_tolerance:
             position = (a + b) / 2
         if (
@@ -249,9 +258,9 @@ class Intake:
         if self.joint_PID.atGoal():
             output = 0
             acceleration = 0
-        print(
-            f"y: {self.position}, r: {self.get_joint_setpoint()}, e: {self.joint_PID.getPositionError()}, u: {output}, u': {acceleration}"
-        )
+        # print(
+        #     f"y: {self.position}, r: {self.get_joint_setpoint()}, e: {self.joint_PID.getPositionError()}, u: {output}, u': {acceleration}"
+        # )
         self.set_joint_speed(output, acceleration)  # clamp?
 
     def intake(self):

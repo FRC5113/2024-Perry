@@ -12,7 +12,7 @@ class Climber:
     contracting_right = will_reset_to(False)
     extending_left = will_reset_to(False)
     extending_right = will_reset_to(False)
-    speed = tunable(0.3)
+    speed = tunable(0.6)
 
     def setup(self):
         self.left_motor.setNeutralMode(NeutralMode.Brake)
@@ -45,15 +45,15 @@ class Climber:
             self.extending_right = False
 
         if self.contracting_left:
-            self.left_motor.set(-0.3)
+            self.left_motor.set(-self.speed)
         elif self.extending_left:
-            self.left_motor.set(0.3)
+            self.left_motor.set(self.speed)
         else:
             self.left_motor.set(0)
 
         if self.contracting_right:
-            self.right_motor.set(0.3)
+            self.right_motor.set(self.speed)
         elif self.extending_right:
-            self.right_motor.set(-0.3)
+            self.right_motor.set(-self.speed)
         else:
             self.right_motor.set(0)
