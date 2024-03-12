@@ -7,8 +7,9 @@ from wpimath import controller
 from navx import AHRS
 from phoenix5 import WPI_TalonSRX
 from rev import CANSparkMax, CANSparkLowLevel
-from photonlibpy.photonCamera import PhotonCamera
-from magicbot import MagicRobot, tunable, feedback
+
+# from photonlibpy.photonCamera import PhotonCamera
+from magicbot import MagicRobot, feedback
 
 from components.climber import Climber
 from components.drivetrain import Drivetrain

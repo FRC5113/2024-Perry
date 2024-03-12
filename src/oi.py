@@ -77,13 +77,13 @@ class Double_Xbox_OI(OI_Base):
         return self.xbox2.getYButton()
 
     def intake_up(self):
-        return self.xbox2.getLeftY() < -self.deadband
+        return False
 
     def intake_down(self):
         return self.xbox2.getLeftY() > self.deadband
 
     def move_intake(self):
-        return self.xbox2.getLeftBumper()
+        return False
 
     def align(self):
         return self.xbox1.getXButton()
@@ -130,10 +130,63 @@ class Joystick_OI(OI_Base):
         return self.joystick.getRawButton(10)
 
     def intake_up(self):
-        return self.joystick.getRawButton(11)
+        return False
 
     def intake_down(self):
         return self.joystick.getRawButton(12)
 
     def move_intake(self):
-        return self.joystick.getTrigger()
+        return False
+
+
+class Sim_OI(OI_Base):
+    def __init__(self, keyboard_port_left: int = 0, keyboard_port_right: int = 1):
+        self.keyboard_left = wpilib.Joystick(keyboard_port_left)
+        self.keyboard_right = wpilib.Joystick(keyboard_port_right)
+
+    def drive_forward(self) -> float:
+        return self.keyboard_left.getY()
+
+    def drive_turn(self) -> float:
+        return self.keyboard_left.getX()
+
+    def soft_shoot(self) -> bool:
+        """Only shoots if predicted to be able to score"""
+        return self.keyboard_left.getRawButton(1)
+
+    def hard_shoot(self) -> bool:
+        """Shoots regardless of scoring prediction"""
+        return self.keyboard_left.getRawButton(2)
+
+    def intake(self) -> bool:
+        return self.keyboard_left.getRawButton(3)
+
+    def eject(self) -> bool:
+        return self.keyboard_left.getRawButton(4)
+
+    def intake_up(self) -> bool:
+        return self.keyboard_right.getRawButton(1)
+
+    def intake_down(self) -> bool:
+        return False
+
+    def move_intake(self) -> bool:
+        return False
+
+    def align(self) -> bool:
+        return self.keyboard_right.getRawButton(2)
+
+    def cancel_align(self) -> bool:
+        return self.keyboard_right.getRawButton(3)
+
+    def contract_left_climber(self) -> bool:
+        return False
+
+    def contract_right_climber(self) -> bool:
+        return False
+
+    def extend_left_climber(self) -> bool:
+        return False
+
+    def extend_right_climber(self) -> bool:
+        return False
