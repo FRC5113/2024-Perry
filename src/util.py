@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Callable
+import math
 
 from wpilib.interfaces import MotorController
 from phoenix6.hardware.talon_fx import TalonFX
@@ -21,6 +22,12 @@ def compensate(args: list[float | None]) -> float | None:
     if len(values) == 0:
         return None
     return sum(values) / len(values)
+
+def rotate_vector(x: float, y: float, theta: float) -> tuple[float]:
+    return (
+        x * math.cos(theta) - y * math.sin(theta),
+        x * math.sin(theta) + y * math.cos(theta)
+    )
 
 
 def cyclic_distance(a: float, b: float, max_value: float = 1.0) -> float:

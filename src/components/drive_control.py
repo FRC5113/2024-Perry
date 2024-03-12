@@ -85,12 +85,7 @@ class DriveControl(magicbot.StateMachine):
         """
         if not self.vision.hasTargets():
             return
-        # ct = np.array([self.vision.getX(), self.vision.getY(), self.vision.getZ()])
-        # latency = self.vision.getLatency()
-        # turn_rate = self.gyro.getRate()
         theta = self.vision.getAdjustedHeading()  # - latency * turn_rate
-        # if self.turn_to_angle_controller.atSetpoint():
-        #     theta = 0
         if theta is None:
             return
         self.set_angle(self.gyro.getAngle() + theta)
@@ -102,6 +97,27 @@ class DriveControl(magicbot.StateMachine):
         if self.align_trigger and self.vision.hasTargets():
             self.turn_to_tag()
             self.next_state("aligning")
+
+    @state
+    def turning_to_angle(self):
+        self.turn_to_angle_controller.setPID(
+            self.turn_to_angle_kP, self.turn_to_angle_kI, self.turn_to_angle_kD
+        )
+        self.turn_to_angle_controller.setTolerance(
+            self.turn_to_angle_tP, self.turn_to_angle_tV
+        )
+
+        measurement = self.gyro.getAngle()
+        output = self.turn_to_angle_controller.calculate(measurement)
+
+        """Here (and elsewhere) the output is negated because a positive turn
+        value in `arcade_drive()` corresponds with a decrease in angle.
+        This could also be fixed with negative PID values, but this is not
+        recommended.
+        """
+        self.drivetrain.arcade_drive(0, util.clamp(-output, -0.5, 0.5))
+        if self.turn_to_angle_controller.atSetpoint():
+            self.next_state("free")
 
     @state
     def aligning(self):
