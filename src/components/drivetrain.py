@@ -42,9 +42,21 @@ class Drivetrain:
             raise Exception(f"Improper value for forward entered: {forward}")
         if not (-1.0 <= turn <= 1.0):
             raise Exception(f"Improper value for turn entered: {turn}")
+        # print(forward, turn)
         self.forward = forward
         self.turn = turn
 
+    def set_coast(self):
+        self.front_left_motor.setIdleMode(CANSparkBase.IdleMode.kCoast)
+        self.front_right_motor.setIdleMode(CANSparkBase.IdleMode.kCoast)
+        self.back_left_motor.setIdleMode(CANSparkBase.IdleMode.kCoast)
+        self.back_right_motor.setIdleMode(CANSparkBase.IdleMode.kCoast)
+
+    def set_brake(self):
+        self.front_left_motor.setIdleMode(CANSparkBase.IdleMode.kBrake)
+        self.front_right_motor.setIdleMode(CANSparkBase.IdleMode.kBrake)
+        self.back_left_motor.setIdleMode(CANSparkBase.IdleMode.kBrake)
+        self.back_right_motor.setIdleMode(CANSparkBase.IdleMode.kBrake)
+
     def execute(self):
-        print(self.forward)
         self.drive.arcadeDrive(self.forward, self.turn)

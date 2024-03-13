@@ -43,8 +43,8 @@ class MyRobot(MagicRobot):
 
         self.gyro = AHRS.create_spi()
 
-        self.climber_left_motor = WPI_TalonSRX(61)
-        self.climber_right_motor = WPI_TalonSRX(62)
+        self.climber_left_motor = CANSparkMax(56, BRUSHLESS)
+        self.climber_right_motor = CANSparkMax(57, BRUSHLESS)
 
         self.drivetrain_front_left_motor = CANSparkMax(5, BRUSHLESS)
         self.drivetrain_front_right_motor = CANSparkMax(50, BRUSHLESS)
@@ -65,7 +65,6 @@ class MyRobot(MagicRobot):
         self.shooter_shooter_left_motor = CANSparkMax(53, BRUSHLESS)
         self.shooter_shooter_right_motor = CANSparkMax(54, BRUSHLESS)
 
-        # CHANGE THE SOUGHT_IDS BEFORE COMP!!!!!!!!!!
         self.vision_right_camera = SmartCamera(
             "Global_Shutter_Camera", np.array([0.3556, 0.2159, 0]), tilt=31
         )
@@ -116,6 +115,7 @@ class MyRobot(MagicRobot):
                 self.drive_control.request_align()
             if self.oi.cancel_align():
                 self.drive_control.engage(initial_state="free", force=True)
+                self.drivetrain.set_coast()
 
             self.intake_control.engage()
             self.shooter_control.engage()

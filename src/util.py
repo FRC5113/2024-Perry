@@ -23,10 +23,11 @@ def compensate(args: list[float | None]) -> float | None:
         return None
     return sum(values) / len(values)
 
+
 def rotate_vector(x: float, y: float, theta: float) -> tuple[float]:
     return (
         x * math.cos(theta) - y * math.sin(theta),
-        x * math.sin(theta) + y * math.cos(theta)
+        x * math.sin(theta) + y * math.cos(theta),
     )
 
 
