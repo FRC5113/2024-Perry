@@ -61,6 +61,7 @@ class TwoNote(AutonomousStateMachine):
 
     @timed_state(duration=3, next_state="stopped")
     def intaking(self):
+        self.intake_control.engage()
         self.intake_control.request_down()
         self.intake_control.request_intake()
 

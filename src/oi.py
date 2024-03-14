@@ -37,16 +37,10 @@ class OI_Base:
     def cancel_align(self) -> bool:
         return False
 
-    def contract_left_climber(self) -> bool:
+    def contract_climbers(self) -> bool:
         return False
-
-    def contract_right_climber(self) -> bool:
-        return False
-
-    def extend_left_climber(self) -> bool:
-        return False
-
-    def extend_right_climber(self) -> bool:
+    
+    def extend_climbers(self) -> bool:
         return False
 
 
@@ -91,17 +85,11 @@ class Double_Xbox_OI(OI_Base):
     def cancel_align(self):
         return self.xbox1.getBButton()
 
-    def contract_left_climber(self):
+    def contract_climbers(self):
         return self.xbox2.getLeftBumper()
 
-    def contract_right_climber(self):
-        return self.xbox2.getRightBumper()
-
-    def extend_left_climber(self):
+    def extend_climbers(self):
         return self.xbox2.getLeftTriggerAxis() > self.deadband
-
-    def extend_right_climber(self):
-        return self.xbox2.getRightTriggerAxis() > self.deadband
 
     def source_intake(self):
         return self.xbox2.getStartButton()

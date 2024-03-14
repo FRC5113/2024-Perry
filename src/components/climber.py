@@ -1,59 +1,34 @@
-from phoenix5 import NeutralMode, WPI_TalonSRX
 from wpilib import MotorControllerGroup
-from wpilib.interfaces import MotorController
 from magicbot import will_reset_to, tunable
-
+from rev import CANSparkBase, CANSparkMax
 
 class Climber:
-    left_motor: WPI_TalonSRX
-    right_motor: WPI_TalonSRX
+    left_motor: CANSparkMax
+    right_motor: CANSparkMax
 
-    contracting_left = will_reset_to(False)
-    contracting_right = will_reset_to(False)
-    extending_left = will_reset_to(False)
-    extending_right = will_reset_to(False)
+    contracting = will_reset_to(False)
+    extending = will_reset_to(False)
     speed = tunable(0.6)
 
     def setup(self):
-        self.left_motor.setNeutralMode(NeutralMode.Brake)
-        self.right_motor.setNeutralMode(NeutralMode.Brake)
-
-    def contract_left(self):
-        self.contracting_left = True
-
-    def contract_right(self):
-        self.contracting_right = True
+        self.left_motor.setIdleMode(CANSparkBase.IdleMode.kBrake)
+        self.right_motor.setIdleMode(CANSparkBase.IdleMode.kBrake)
+        self.right_motor.setInverted(True)
+        self.motor_group = MotorControllerGroup(self.left_motor, self.right_motor)
 
     def contract(self):
-        self.contracting_left = True
-        self.contracting_right = True
-
-    def extend_left(self):
-        self.extending_left = True
-
-    def extend_right(self):
-        self.extending_right = True
+        self.contracting = True
 
     def extend(self):
-        self.extending_left = True
-        self.extending_right = True
+        self.extending = True
 
     def execute(self):
-        if self.contracting_left and self.extending_left:
-            self.extending_left = False
-        if self.contracting_right and self.extending_right:
-            self.extending_right = False
+        if self.contracting and self.extending:
+            self.contracting = False
 
-        if self.contracting_left:
-            self.left_motor.set(-self.speed)
-        elif self.extending_left:
-            self.left_motor.set(self.speed)
+        if self.contracting:
+            self.motor_group.set(-self.speed)
+        elif self.extending:
+            self.motor_group.set(self.speed)
         else:
-            self.left_motor.set(0)
-
-        if self.contracting_right:
-            self.right_motor.set(self.speed)
-        elif self.extending_right:
-            self.right_motor.set(-self.speed)
-        else:
-            self.right_motor.set(0)
+            self.motor_group.set(0)

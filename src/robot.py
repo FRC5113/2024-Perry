@@ -101,14 +101,10 @@ class MyRobot(MagicRobot):
                     0.8 * self.turn_curve(self.oi.drive_turn()),
                 )
 
-            if self.oi.contract_left_climber():
-                self.climber.contract_left()
-            if self.oi.contract_right_climber():
-                self.climber.contract_right()
-            if self.oi.extend_left_climber():
-                self.climber.extend_left()
-            if self.oi.extend_right_climber():
-                self.climber.extend_right()
+            if self.oi.contract_climbers():
+                self.climber.contract()
+            if self.oi.extend_climbers():
+                self.climber.extend()
 
             self.drive_control.engage()
             if self.oi.align():

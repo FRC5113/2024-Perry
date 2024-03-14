@@ -132,6 +132,7 @@ class DriveControl(magicbot.StateMachine):
         """
         self.drivetrain.arcade_drive(0, util.clamp(-output, -0.5, 0.5))
         if self.turn_to_angle_controller.atSetpoint():
+            self.drivetrain.set_coast()
             self.next_state("free")
 
     @state
@@ -194,5 +195,6 @@ class DriveControl(magicbot.StateMachine):
         self.drivetrain.arcade_drive(util.clamp(-output, -0.5, 0.5), 0)
         error = self.drive_from_tag_controller.getPositionError()
         if abs(error) < self.drive_from_tag_tP:
+            print("bruh")
             self.drivetrain.set_coast()
             self.next_state("free")
