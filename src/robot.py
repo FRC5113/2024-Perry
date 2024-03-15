@@ -81,9 +81,13 @@ class MyRobot(MagicRobot):
             scalar=0.5, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
         )
 
-    def robotPeriodic(self):
+    def robotPeriodic(self) -> None:
+        super().robotPeriodic()
         self.intake_control.update_shooter_state(self.shooter_control.current_state)
         self.shooter_control.update_intake_state(self.intake_control.current_state)
+
+    def disabledInit(self) -> None:
+        self.drivetrain.set_coast()
 
     def autonomousInit(self):
         self.gyro.reset()

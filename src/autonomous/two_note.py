@@ -38,7 +38,7 @@ class TwoNote(AutonomousStateMachine):
         if not self.vision.hasTargets():
             self.next_state("finding_tag1")
             return
-        if self.drive_control.current_state == "free" and state_tm > 1:
+        if self.drive_control.current_state == "settling" and state_tm > 1:
             self.next_state("shooting1")
 
     @timed_state(duration=2.5, next_state="aligning_to_note")
@@ -50,27 +50,31 @@ class TwoNote(AutonomousStateMachine):
     def aligning_to_note(self, state_tm):
         if not self.vision.hasTargets():
             return
-        rtc = [self.vision.getX(), self.vision.getY()]
-        rtf = list(util.rotate_vector(rtc[0], rtc[1], self.gyro.getAngle()))
-        tn = [2.845, -1.448]
-        rn = [tn[0] + rtf[0], tn[1] + rtf[1]]
-        theta = math.atan2(rn[1], rn[0]) * 180 / math.pi
-        self.drive_control.set_angle(theta)
-        self.drive_control.engage()
-        self.drive_control.request_turn()
-        if self.drive_control.current_state == "free" and state_tm > 1:
-            self.next_state("stopped")
+        if state_tm < 0.5:
+            ctc = [self.vision.getX(), self.vision.getY()]
+            rtc = [ctc[0] + 0.3556, ctc[1]]
+            rtf = list(util.rotate_vector(rtc[0], rtc[1], self.gyro.getAngle()))
+            tn = [2.845, -1.448]
+            rn = [tn[0] + rtf[0], tn[1] + rtf[1]]
+            theta = math.atan2(rn[1], rn[0]) * 180 / math.pi
+            print("!!!",theta)
+            self.drive_control.set_angle(theta)
+        else:
+            self.drive_control.engage()
+            self.drive_control.request_turn()
+        if self.drive_control.current_state == "settling" and state_tm > 2:
+            self.next_state("intaking")
 
-    @timed_state(duration=4, next_state="stopped")
+    @timed_state(duration=3.5, next_state="finding_tag2")
     def intaking(self, state_tm):
         self.intake.update_position()
         self.intake_control.engage()
         self.intake_control.request_down()
         self.intake_control.request_intake()
-        if 1 < state_tm < 3:
+        if 1 < state_tm < 2.5:
             self.drivetrain.arcade_drive(-0.5, 0)
 
-    @state(first=True)
+    @state
     def finding_tag2(self, state_tm):
         self.intake.update_position()
         self.intake_control.engage()
@@ -86,7 +90,7 @@ class TwoNote(AutonomousStateMachine):
         if not self.vision.hasTargets():
             self.next_state("finding_tag2")
             return
-        if self.drive_control.current_state == "free" and state_tm > 1:
+        if self.drive_control.current_state == "settling" and state_tm > 1:
             self.next_state("shooting2")
 
     @timed_state(duration=2.5, next_state="stopped")

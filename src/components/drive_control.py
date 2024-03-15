@@ -20,8 +20,8 @@ class DriveControl(magicbot.StateMachine):
     # variables to be injected
     gyro: navx.AHRS
 
-    turn_to_angle_kP = tunable(0.02)
-    turn_to_angle_kI = tunable(0.008)
+    turn_to_angle_kP = tunable(0.01)
+    turn_to_angle_kI = tunable(0)
     turn_to_angle_kD = tunable(0)
     turn_to_angle_tP = tunable(4)
     turn_to_angle_tV = tunable(0.1)
@@ -99,7 +99,7 @@ class DriveControl(magicbot.StateMachine):
     @state(first=True)
     def free(self):
         """First state -- arcade drive"""
-
+        self.drivetrain.set_coast()
         if self.align_trigger and self.vision.hasTargets():
             self.turn_to_tag()
             self.drivetrain.set_brake()
@@ -107,6 +107,10 @@ class DriveControl(magicbot.StateMachine):
         if self.turn_trigger:
             self.drivetrain.set_brake()
             self.next_state("turning_to_angle")
+
+    @timed_state(duration=0.5, next_state="free")
+    def settling(self):
+        self.drivetrain.set_brake
 
     @state
     def turning_to_angle(self):
@@ -134,8 +138,7 @@ class DriveControl(magicbot.StateMachine):
         """
         self.drivetrain.arcade_drive(0, util.clamp(-output, -0.5, 0.5))
         if self.turn_to_angle_controller.atSetpoint():
-            self.drivetrain.set_coast()
-            self.next_state("free")
+            self.next_state("settling")
 
     @state
     def aligning(self):
@@ -197,6 +200,4 @@ class DriveControl(magicbot.StateMachine):
         self.drivetrain.arcade_drive(util.clamp(-output, -0.5, 0.5), 0)
         error = self.drive_from_tag_controller.getPositionError()
         if abs(error) < self.drive_from_tag_tP:
-            print("bruh")
-            self.drivetrain.set_coast()
-            self.next_state("free")
+            self.next_state("settling")
