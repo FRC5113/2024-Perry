@@ -81,13 +81,15 @@ class MyRobot(MagicRobot):
             scalar=0.5, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
         )
 
+    def robotPeriodic(self):
+        self.intake_control.update_shooter_state(self.shooter_control.current_state)
+        self.shooter_control.update_intake_state(self.intake_control.current_state)
+
     def autonomousInit(self):
         self.gyro.reset()
 
     def teleopPeriodic(self):
         self.intake.update_position()
-        self.intake_control.update_shooter_state(self.shooter_control.current_state)
-        self.shooter_control.update_intake_state(self.intake_control.current_state)
 
         with self.consumeExceptions():
             if abs(self.intake.get_joint_setpoint() - self.intake.lower_limit) < 0.001:

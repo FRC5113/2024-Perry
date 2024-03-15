@@ -2,6 +2,7 @@ from wpilib import MotorControllerGroup
 from magicbot import will_reset_to, tunable
 from rev import CANSparkBase, CANSparkMax
 
+
 class Climber:
     left_motor: CANSparkMax
     right_motor: CANSparkMax

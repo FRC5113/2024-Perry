@@ -31,6 +31,8 @@ class DriveControl(magicbot.StateMachine):
     drive_from_tag_tP = tunable(0.07)
     drive_from_tag_setpoint = tunable(1.05)
 
+    drivetrain_kS = tunable(0.12)
+
     align_trigger = will_reset_to(False)
     turn_trigger = will_reset_to(False)
     manual_tolerance_scalar = tunable(3)
@@ -155,9 +157,9 @@ class DriveControl(magicbot.StateMachine):
         measurement = self.gyro.getAngle()
         output = self.turn_to_angle_controller.calculate(measurement)
         if output > 0:
-            output += 0.13
+            output += self.drivetrain_kS
         elif output < 0:
-            output -= 0.13
+            output -= self.drivetrain_kS
 
         """Here (and elsewhere) the output is negated because a positive turn
         value in `arcade_drive()` corresponds with a decrease in angle.
@@ -186,9 +188,9 @@ class DriveControl(magicbot.StateMachine):
             return
         output = self.drive_from_tag_controller.calculate(measurement)
         if output > 0:
-            output += 0.13
+            output += self.drivetrain_kS
         elif output < 0:
-            output -= 0.13
+            output -= self.drivetrain_kS
         print(
             f"r: {self.drive_from_tag_controller.getSetpoint()}, y: {measurement}, e: {self.turn_to_angle_controller.getPositionError()}, u: {output}"
         )

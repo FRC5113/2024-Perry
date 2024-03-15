@@ -39,7 +39,7 @@ class OI_Base:
 
     def contract_climbers(self) -> bool:
         return False
-    
+
     def extend_climbers(self) -> bool:
         return False
 

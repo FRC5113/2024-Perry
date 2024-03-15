@@ -6,6 +6,7 @@ import navx
 
 from components.drivetrain import Drivetrain
 from components.drive_control import DriveControl
+from components.intake import Intake
 from components.intake_control import IntakeControl
 from components.shooter_control import ShooterControl
 from components.vision import Vision
@@ -19,6 +20,7 @@ class TwoNote(AutonomousStateMachine):
     intake_control: IntakeControl
     shooter_control: ShooterControl
     drivetrain: Drivetrain
+    intake: Intake
     vision: Vision
 
     gyro: navx.AHRS
@@ -59,11 +61,38 @@ class TwoNote(AutonomousStateMachine):
         if self.drive_control.current_state == "free" and state_tm > 1:
             self.next_state("stopped")
 
-    @timed_state(duration=3, next_state="stopped")
-    def intaking(self):
+    @timed_state(duration=4, next_state="stopped")
+    def intaking(self, state_tm):
+        self.intake.update_position()
         self.intake_control.engage()
         self.intake_control.request_down()
         self.intake_control.request_intake()
+        if 1 < state_tm < 3:
+            self.drivetrain.arcade_drive(-0.5, 0)
+
+    @state(first=True)
+    def finding_tag2(self, state_tm):
+        self.intake.update_position()
+        self.intake_control.engage()
+        self.intake_control.request_up()
+        self.drivetrain.arcade_drive(0, 0)
+        if self.vision.hasTargets() and state_tm > 0.5:
+            self.next_state("aligning2")
+
+    @state
+    def aligning2(self, state_tm):
+        self.drive_control.engage()
+        self.drive_control.request_align()
+        if not self.vision.hasTargets():
+            self.next_state("finding_tag2")
+            return
+        if self.drive_control.current_state == "free" and state_tm > 1:
+            self.next_state("shooting2")
+
+    @timed_state(duration=2.5, next_state="stopped")
+    def shooting2(self):
+        self.drivetrain.arcade_drive(0, 0)
+        self.shooter_control.engage(initial_state="loading")
 
     @state
     def stopped(self):
