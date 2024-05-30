@@ -23,7 +23,7 @@ class IntakeControl(StateMachine):
     # eject_trigger will override intake_trigger
     intake_trigger = will_reset_to(False)
     eject_trigger = will_reset_to(False)
-    leniency = tunable(0.05)
+    leniency = tunable(0.2)
     shooter_state = "idle"
 
     """Control methods
@@ -53,7 +53,7 @@ class IntakeControl(StateMachine):
     # states
     @state(first=True)
     def transitioning(self):
-        if self.joint_setpoint != -1:
+        if abs(self.joint_setpoint - (-1)) > 0.001:
             self.intake.set_joint_setpoint(self.joint_setpoint)
         if not self.intake.is_at_setpoint():
             self.intake.move_to_setpoint()
@@ -77,7 +77,7 @@ class IntakeControl(StateMachine):
 
     @state
     def idle(self):
-        if self.joint_setpoint != -1:
+        if abs(self.joint_setpoint - (-1)) > 0.001:
             self.intake.set_joint_setpoint(self.joint_setpoint)
         if (
             not self.intake.is_at_setpoint()
@@ -94,7 +94,7 @@ class IntakeControl(StateMachine):
         if self.intake_trigger:
             self.next_state("intaking")
             return
-        if self.joint_setpoint != -1:
+        if abs(self.joint_setpoint - (-1)) > 0.001:
             self.intake.set_joint_setpoint(self.joint_setpoint)
         if (
             not self.intake.is_at_setpoint()

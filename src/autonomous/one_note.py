@@ -35,7 +35,7 @@ class OneNote(AutonomousStateMachine):
         self.drivetrain.arcade_drive(0, 0)
         self.shooter_control.engage(initial_state="loading")
 
-    @timed_state(duration=2, next_state="stopped")
+    @timed_state(duration=3, next_state="stopped")
     def leaving(self):
         self.drivetrain.arcade_drive(-0.5, 0)
 

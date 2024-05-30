@@ -101,3 +101,7 @@ class Shooter:
     @feedback
     def get_has_note(self):
         return self.has_note()
+    
+    @feedback
+    def get_status_indexer_belt(self):
+        return self.belt_intaking or self.belt_ejecting

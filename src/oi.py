@@ -43,6 +43,9 @@ class OI_Base:
     def extend_climbers(self) -> bool:
         return False
 
+    def run_intake_always(self) -> bool:
+        return False
+
 
 class Double_Xbox_OI(OI_Base):
     def __init__(
@@ -86,16 +89,34 @@ class Double_Xbox_OI(OI_Base):
         return self.xbox1.getBButton()
 
     def contract_climbers(self):
-        return self.xbox2.getLeftBumper()
+        return self.xbox2.getRightY() > self.deadband
 
     def extend_climbers(self):
+        return self.xbox2.getRightY() < -self.deadband
+
+    def contract_left_climber(self):
+        return self.xbox2.getLeftBumper()
+
+    def extend_left_climber(self):
         return self.xbox2.getLeftTriggerAxis() > self.deadband
+
+    def contract_right_climber(self):
+        return self.xbox2.getRightBumper()
+
+    def extend_right_climber(self):
+        return self.xbox2.getRightTriggerAxis() > self.deadband
+    
+    def ignore_climber_limits(self):
+        return self.xbox2.getRightStickButton()
 
     def source_intake(self):
         return self.xbox2.getStartButton()
 
     def override_intake_disable(self):
         return self.xbox1.getStartButton()
+
+    # def test(self):
+    # return self.xbox1.get
 
 
 class Joystick_OI(OI_Base):

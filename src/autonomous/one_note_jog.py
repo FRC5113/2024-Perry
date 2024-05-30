@@ -14,7 +14,7 @@ class OneNoteJog(AutonomousStateMachine):
     drivetrain: Drivetrain
     vision: Vision
 
-    @timed_state(duration=2, first=True, next_state="finding_tag")
+    @timed_state(duration=2.5, first=True, next_state="finding_tag")
     def driving_forward(self):
         self.drivetrain.arcade_drive(-0.5, 0)
 

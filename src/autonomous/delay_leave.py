@@ -12,7 +12,7 @@ class DelayLeave(AutonomousStateMachine):
     def staying(self):
         self.drivetrain.arcade_drive(0, 0)
 
-    @timed_state(duration=2, next_state="stopping")
+    @timed_state(duration=3, next_state="stopping")
     def going(self):
         self.drivetrain.arcade_drive(-0.5, 0)
 

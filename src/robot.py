@@ -19,6 +19,7 @@ from components.intake_control import IntakeControl
 from components.shooter import Shooter
 from components.shooter_control import ShooterControl
 from components.vision import Vision, SmartCamera
+
 import oi
 import util
 
@@ -45,6 +46,10 @@ class MyRobot(MagicRobot):
 
         self.climber_left_motor = CANSparkMax(56, BRUSHLESS)
         self.climber_right_motor = CANSparkMax(57, BRUSHLESS)
+        self.climber_left_lower_limit = -270.0
+        self.climber_left_upper_limit = 0.0
+        self.climber_right_lower_limit = 0.0
+        self.climber_right_upper_limit = 270.0
 
         self.drivetrain_front_left_motor = CANSparkMax(5, BRUSHLESS)
         self.drivetrain_front_right_motor = CANSparkMax(50, BRUSHLESS)
@@ -103,14 +108,26 @@ class MyRobot(MagicRobot):
                 )
             else:
                 self.drive_control.arcade_drive(
-                    0.5 * self.drive_curve(self.oi.drive_forward()),
+                    0.75 * self.drive_curve(self.oi.drive_forward()),
                     0.8 * self.turn_curve(self.oi.drive_turn()),
                 )
 
-            if self.oi.contract_climbers():
+            if self.oi.ignore_climber_limits():
+                self.climber.ignore_limits()
+            if self.oi.contract_left_climber():
+                self.climber.contract_left()
+            if self.oi.contract_right_climber():
+                self.climber.contract_right()
+            if self.oi.extend_left_climber():
+                self.climber.extend_left()
+            if self.oi.extend_right_climber():
+                self.climber.extend_right()
+            if self.oi.contract_climbers() and not self.oi.ignore_climber_limits():
                 self.climber.contract()
-            if self.oi.extend_climbers():
+            if self.oi.extend_climbers() and not self.oi.ignore_climber_limits():
                 self.climber.extend()
+            if self.oi.source_intake() and self.oi.ignore_climber_limits():
+                self.climber.reset_encoders()
 
             self.drive_control.engage()
             if self.oi.align():
@@ -124,8 +141,9 @@ class MyRobot(MagicRobot):
             if self.intake.get_position() is None:
                 self.intake_control.engage(initial_state="disabled", force=True)
             if self.oi.override_intake_disable():
+                self.intake.override_disable()
                 self.intake_control.engage(initial_state="transitioning", force=True)
-            if self.oi.source_intake():
+            if self.oi.source_intake() and not self.oi.ignore_climber_limits():
                 self.shooter.source_intake()
             if self.oi.soft_shoot() and self.drive_control.get_manually_aligned():
                 self.shooter_control.request_shoot()

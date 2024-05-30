@@ -32,11 +32,12 @@ class Intake:
     belt_motor: util.WPI_TalonFX
 
     lower_limit = 0.0
-    upper_limit = 0.39
+    upper_limit = 0.41
     horizontal_offset = 0.27
-    joint_kP = tunable(2)
-    joint_max_velocity = tunable(0.5)
-    joint_max_acceleration = tunable(1)
+    joint_kP = tunable(6)
+    joint_tP = tunable(0.02)
+    joint_max_velocity = tunable(0.3)
+    joint_max_acceleration = tunable(0.7)
     # replace this with a ProfiledPIDController
     joint_PID = controller.ProfiledPIDController(
         0, 0, 0, trajectory.TrapezoidProfile.Constraints(0, 0)
@@ -68,7 +69,7 @@ class Intake:
             )
         )
         self.joint_PID.setGoal(self.lower_limit)
-        self.joint_PID.setTolerance(0.05)
+        self.joint_PID.setTolerance(self.joint_tP)
         self.joint_PID.enableContinuousInput(0, 1)
 
     # informational methods
@@ -112,12 +113,15 @@ class Intake:
         position = None
 
         if not self.left_encoder.isConnected() and not self.right_encoder.isConnected():
+            self.position = position
             return position
         if not self.left_encoder.isConnected():
             position = b
+            self.position = position
             return position
         if not self.right_encoder.isConnected():
             position = a
+            self.position = position
             return position
         if abs(a - b) <= self.encoder_error_tolerance:
             position = (a + b) / 2
@@ -274,6 +278,9 @@ class Intake:
     def disable(self):
         self.disabled = True
 
+    def override_disable(self):
+        self.disabled = False
+
     def execute(self):
         self.last_position = self.position
         self.joint_PID.setP(self.joint_kP)
@@ -333,3 +340,7 @@ class Intake:
     @feedback
     def get_has_note(self):
         return self.has_note()
+    
+    @feedback
+    def get_status_intake_belt(self):
+        return not self.disabled and (self.belt_intaking or self.belt_ejecting)
