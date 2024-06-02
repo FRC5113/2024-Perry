@@ -62,11 +62,11 @@ class MyRobot(MagicRobot):
         self.intake_right_encoder = DutyCycleEncoder(DigitalInput(1))
         self.intake_left_encoder_offset = 0.882
         self.intake_right_encoder_offset = 0.198
-        self.intake_belt_motor = util.WPI_TalonFX(45)
+        self.intake_belt_motor = util.WPI_TalonFX(46)
 
         self.shooter_belt_motor = CANSparkMax(55, BRUSHLESS)
         self.shooter_feed_left_motor = WPI_TalonSRX(25)
-        self.shooter_feed_right_motor = WPI_TalonSRX(46)
+        self.shooter_feed_right_motor = WPI_TalonSRX(45)
         self.shooter_shooter_left_motor = CANSparkMax(53, BRUSHLESS)
         self.shooter_shooter_right_motor = CANSparkMax(54, BRUSHLESS)
 
@@ -80,10 +80,10 @@ class MyRobot(MagicRobot):
         self.oi = oi.Double_Xbox_OI()
 
         self.drive_curve = util.cubic_curve(
-            scalar=0.8, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
+            scalar=0.8, deadband=0.1, max_mag=1, offset=0.15, absolute_offset=False
         )
         self.turn_curve = util.cubic_curve(
-            scalar=0.5, deadband=0.1, max_mag=1, offset=0.2, absolute_offset=False
+            scalar=0.5, deadband=0.1, max_mag=1, offset=0.15, absolute_offset=False
         )
 
     def robotPeriodic(self) -> None:
