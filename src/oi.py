@@ -46,6 +46,48 @@ class OI_Base:
     def run_intake_always(self) -> bool:
         return False
 
+class Single_Xbox_OI(OI_Base):
+    def __init__(
+        self, xbox_port_1: int = 0, deadband: float = 0.1
+    ):
+        self.xbox1 = wpilib.XboxController(xbox_port_1)
+        self.deadband = deadband
+
+    def drive_forward(self):
+        return self.xbox1.getLeftY()
+
+    def drive_turn(self):
+        return -self.xbox1.getRightX()
+
+    def soft_shoot(self):
+        return self.xbox1.getBButton()
+
+    def hard_shoot(self):
+        return self.xbox1.getBButton() and self.xbox1.getAButton()
+
+    def intake(self):
+        return self.xbox1.getXButton()
+
+    def eject(self):
+        return self.xbox1.getYButton()
+
+    def intake_down(self):
+        return self.xbox1.POVDown()
+
+    def contract_left_climber(self):
+        return self.xbox1.getLeftBumper()
+
+    def extend_left_climber(self):
+        return self.xbox1.getLeftTriggerAxis() > self.deadband
+
+    def contract_right_climber(self):
+        return self.xbox1.getRightBumper()
+
+    def extend_right_climber(self):
+        return self.xbox1.getRightTriggerAxis() > self.deadband
+
+    def source_intake(self):
+        return self.xbox1.getStartButton()
 
 class Double_Xbox_OI(OI_Base):
     def __init__(
@@ -105,9 +147,6 @@ class Double_Xbox_OI(OI_Base):
 
     def extend_right_climber(self):
         return self.xbox2.getRightTriggerAxis() > self.deadband
-    
-    def ignore_climber_limits(self):
-        return self.xbox2.getRightStickButton()
 
     def source_intake(self):
         return self.xbox2.getStartButton()

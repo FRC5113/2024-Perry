@@ -1,4 +1,4 @@
-from wpilib import MotorControllerGroup
+from wpilib import MotorControllerGroup,DigitalInput
 from magicbot import will_reset_to, tunable, feedback
 from rev import CANSparkBase, CANSparkMax
 
@@ -10,6 +10,7 @@ class Climber:
     left_upper_limit: float
     right_lower_limit: float
     right_upper_limit: float
+
 
     contracting_right = will_reset_to(False)
     contracting_left = will_reset_to(False)
@@ -23,6 +24,8 @@ class Climber:
         self.right_motor.setIdleMode(CANSparkBase.IdleMode.kBrake)
         self.left_encoder = self.left_motor.getEncoder()
         self.right_encoder = self.right_motor.getEncoder()
+        self.climber_left_limit_switch = DigitalInput(4)
+        self.climber_right_limit_switch = DigitalInput(5)
 
     @feedback
     def get_left_position(self):
@@ -52,38 +55,29 @@ class Climber:
         self.extending_right = True
         self.extending_left = True
 
-    def reset_encoders(self):
-        self.left_encoder.setPosition(0)
-        self.right_encoder.setPosition(0)
-
-    def ignore_limits(self):
-        self.ignoring_limits = True
-
     def execute(self):
+        if self.climber_left_limit_switch.get():
+            self.left_encoder.setPosition(0)
+        if self.climber_right_limit_switch.get():
+            self.right_encoder.setPosition(0)
         if self.contracting_left and self.extending_left:
             self.extending_left = False
 
         if self.contracting_right and self.extending_right:
             self.extending_right = False
 
-        if self.extending_left and (
-            self.get_left_position() > self.left_lower_limit or self.ignoring_limits
-        ):
+        if self.extending_left and self.climber_left_limit_switch.get() != False:
             self.left_motor.set(-self.speed)
         elif self.contracting_left and (
-            self.get_left_position() < self.left_upper_limit or self.ignoring_limits
-        ):
+            self.get_left_position() < self.left_upper_limit):
             self.left_motor.set(self.speed)
         else:
             self.left_motor.set(0)
 
-        if self.contracting_right and (
-            self.get_right_position() > self.right_lower_limit or self.ignoring_limits
-        ):
+        if self.contracting_right and self.climber_left_limit_switch.get() != False:
             self.right_motor.set(-self.speed)
         elif self.extending_right and (
-            self.get_right_position() < self.right_upper_limit or self.ignoring_limits
-        ):
+            self.get_right_position() < self.right_upper_limit):
             self.right_motor.set(self.speed)
         else:
             self.right_motor.set(0)

@@ -112,8 +112,6 @@ class MyRobot(MagicRobot):
                     0.8 * self.turn_curve(self.oi.drive_turn()),
                 )
 
-            if self.oi.ignore_climber_limits():
-                self.climber.ignore_limits()
             if self.oi.contract_left_climber():
                 self.climber.contract_left()
             if self.oi.contract_right_climber():
@@ -122,12 +120,10 @@ class MyRobot(MagicRobot):
                 self.climber.extend_left()
             if self.oi.extend_right_climber():
                 self.climber.extend_right()
-            if self.oi.contract_climbers() and not self.oi.ignore_climber_limits():
+            if self.oi.contract_climbers():
                 self.climber.contract()
-            if self.oi.extend_climbers() and not self.oi.ignore_climber_limits():
+            if self.oi.extend_climbers():
                 self.climber.extend()
-            if self.oi.source_intake() and self.oi.ignore_climber_limits():
-                self.climber.reset_encoders()
 
             self.drive_control.engage()
             if self.oi.align():
@@ -143,7 +139,7 @@ class MyRobot(MagicRobot):
             if self.oi.override_intake_disable():
                 self.intake.override_disable()
                 self.intake_control.engage(initial_state="transitioning", force=True)
-            if self.oi.source_intake() and not self.oi.ignore_climber_limits():
+            if self.oi.source_intake():
                 self.shooter.source_intake()
             if self.oi.soft_shoot() and self.drive_control.get_manually_aligned():
                 self.shooter_control.request_shoot()
