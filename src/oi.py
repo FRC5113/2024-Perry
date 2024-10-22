@@ -72,7 +72,7 @@ class Single_Xbox_OI(OI_Base):
         return self.xbox1.getYButton()
 
     def intake_down(self):
-        return self.xbox1.POVDown()
+        return False
 
     def contract_left_climber(self):
         return self.xbox1.getLeftBumper()
@@ -88,6 +88,10 @@ class Single_Xbox_OI(OI_Base):
 
     def source_intake(self):
         return self.xbox1.getStartButton()
+    
+    def override_intake_disable(self):
+        return False
+
 
 class Double_Xbox_OI(OI_Base):
     def __init__(

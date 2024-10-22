@@ -77,7 +77,7 @@ class MyRobot(MagicRobot):
             "USB_Camera", np.array([0.3556, -0.2159, 0]), tilt=31
         )
 
-        self.oi = oi.Double_Xbox_OI()
+        self.oi = oi.Single_Xbox_OI()
 
         self.drive_curve = util.cubic_curve(
             scalar=0.8, deadband=0.1, max_mag=1, offset=0.15, absolute_offset=False

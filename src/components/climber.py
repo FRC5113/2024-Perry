@@ -58,6 +58,7 @@ class Climber:
     def execute(self):
         if self.climber_left_limit_switch.get():
             self.left_encoder.setPosition(0)
+            print (self.climber_left_limit_switch.get())
         if self.climber_right_limit_switch.get():
             self.right_encoder.setPosition(0)
         if self.contracting_left and self.extending_left:
