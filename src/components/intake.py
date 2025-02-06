@@ -45,6 +45,7 @@ class Intake:
     joint_voltage = will_reset_to(0)
     feedforward = controller.ArmFeedforward(0.24, 0.42, 0.78, 0.01)
     position = 0
+
     last_position = 0
     speed_filter = filter.MedianFilter(10)
     motor_speed_filter = filter.MedianFilter(5)
@@ -55,6 +56,7 @@ class Intake:
     encoder_error_tolerance = 0.1
     note_detection_threshold = tunable(20)
     disabled = False
+
 
     def setup(self):
         self.joint_right_motor.setInverted(True)
@@ -282,6 +284,7 @@ class Intake:
         self.disabled = False
 
     def execute(self):
+
         self.last_position = self.position
         self.joint_PID.setP(self.joint_kP)
         self.joint_PID.setConstraints(

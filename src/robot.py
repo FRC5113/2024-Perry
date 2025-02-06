@@ -42,6 +42,7 @@ class MyRobot(MagicRobot):
         """Initialize variables to be injected:"""
         BRUSHLESS = CANSparkLowLevel.MotorType.kBrushless
 
+
         self.gyro = AHRS.create_spi()
 
         self.climber_left_motor = CANSparkMax(56, BRUSHLESS)
@@ -64,11 +65,13 @@ class MyRobot(MagicRobot):
         self.intake_right_encoder_offset = 0.198
         self.intake_belt_motor = util.WPI_TalonFX(46)
 
+
         self.shooter_belt_motor = CANSparkMax(55, BRUSHLESS)
         self.shooter_feed_left_motor = WPI_TalonSRX(25)
         self.shooter_feed_right_motor = WPI_TalonSRX(45)
         self.shooter_shooter_left_motor = CANSparkMax(53, BRUSHLESS)
         self.shooter_shooter_right_motor = CANSparkMax(54, BRUSHLESS)
+
 
         self.vision_right_camera = SmartCamera(
             "Global_Shutter_Camera", np.array([0.3556, 0.2159, 0]), tilt=31
@@ -76,6 +79,7 @@ class MyRobot(MagicRobot):
         self.vision_left_camera = SmartCamera(
             "USB_Camera", np.array([0.3556, -0.2159, 0]), tilt=31
         )
+
 
         self.oi = oi.Single_Xbox_OI()
 
