@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Callable
+import math
 
 from wpilib.interfaces import MotorController
 from phoenix6.hardware.talon_fx import TalonFX
@@ -15,8 +16,51 @@ def clamp(value: float, min_value: float, max_value: float) -> float:
     return max(min(value, max_value), min_value)
 
 
+def compensate(args: list[float | None]) -> float | None:
+    """Finds the average of all non-None values in `args`"""
+    values = list(filter(lambda i: i is not None, args))
+    if len(values) == 0:
+        return None
+    return sum(values) / len(values)
+
+
+def rotate_vector(x: float, y: float, theta: float) -> tuple[float]:
+    return (
+        x * math.cos(theta) - y * math.sin(theta),
+        x * math.sin(theta) + y * math.cos(theta),
+    )
+
+
+def cyclic_distance(a: float, b: float, max_value: float = 1.0) -> float:
+    """Calculates distance between two values (`a` and `b`) over a
+    cyclic space. This is useful for things like encoders
+    """
+    return min(abs(a - b), max_value - abs(a - b))
+
+
+def cyclic_contains(value: float, a: float, b: float, tolerance: float = 0.001) -> bool:
+    """Determines if a value is between two bounds (`a` and `b`) over a
+    cyclic space. This assumes that the two bounds are less than half
+    a rotation apart in the real world.
+    """
+    return (
+        cyclic_distance(value, a) + cyclic_distance(value, b)
+        <= cyclic_distance(a, b) + tolerance
+    )
+
+
+def cyclic_average(a: float, b: float) -> float:
+    if abs(a - b) <= 0.5:
+        return (a + b) / 2.0
+    return ((a + b) / 2.0 + 0.5) % 1
+
+
 def curve(
-    mapping: Callable[[float], float], offset: float, deadband: float, max_mag: float
+    mapping: Callable[[float], float],
+    offset: float,
+    deadband: float,
+    max_mag: float,
+    absolute_offset: bool = True,
 ) -> Callable[[float], float]:
     """Return a function that applies a curve to an input.
 
@@ -27,13 +71,16 @@ def curve(
         the input is treated as zero
     max_mag -- restricts the output magnitude to a maximum.
         If this is 0, no restriction is applied.
+    absolute_offset -- If true, applies offset always (even when deadbanded),
+        If false, adds sign(input_val) * offset or 0 in the deadband
     """
 
     def f(input_val: float) -> float:
         """Apply a curve to an input. Be sure to call this function to get an output, not curve."""
         if abs(input_val) < deadband:
-            return offset
-        output_val = mapping(input_val) + offset
+            return offset if absolute_offset else 0
+        applied_offset = (1 if absolute_offset else abs(input_val) / input_val) * offset
+        output_val = mapping(input_val) + applied_offset
         if max_mag == 0:
             return output_val
         else:
@@ -47,8 +94,9 @@ def linear_curve(
     offset: float = 0.0,
     deadband: float = 0.0,
     max_mag: float = 0.0,
+    absolute_offset: bool = True,
 ) -> Callable[[float], float]:
-    return curve(lambda x: scalar * x, offset, deadband, max_mag)
+    return curve(lambda x: scalar * x, offset, deadband, max_mag, absolute_offset)
 
 
 def ollie_curve(
@@ -56,8 +104,11 @@ def ollie_curve(
     offset: float = 0.0,
     deadband: float = 0.0,
     max_mag: float = 0.0,
+    absolute_offset: bool = True,
 ) -> Callable[[float], float]:
-    return curve(lambda x: scalar * x * abs(x), offset, deadband, max_mag)
+    return curve(
+        lambda x: scalar * x * abs(x), offset, deadband, max_mag, absolute_offset
+    )
 
 
 def cubic_curve(
@@ -65,8 +116,9 @@ def cubic_curve(
     offset: float = 0.0,
     deadband: float = 0.0,
     max_mag: float = 0.0,
+    absolute_offset: bool = True,
 ) -> Callable[[float], float]:
-    return curve(lambda x: scalar * x**3, offset, deadband, max_mag)
+    return curve(lambda x: scalar * x**3, offset, deadband, max_mag, absolute_offset)
 
 
 class EmptyController(MotorController):
@@ -139,14 +191,14 @@ class WPI_TalonFX(TalonFX, MotorController):
         mode -- Idle mode (coast or brake)
         """
         self.config.motor_output.neutral_mode = mode
-        self.configurator.apply(self.config)
+        self.configurator.apply(self.config)  # type: ignore
 
     def setInverted(self, isInverted: bool):
         if isInverted:
             self.config.motor_output.inverted = InvertedValue.CLOCKWISE_POSITIVE
         else:
             self.config.motor_output.inverted = InvertedValue.COUNTER_CLOCKWISE_POSITIVE
-        self.configurator.apply(self.config)
+        self.configurator.apply(self.config)  # type: ignore
 
     def setVoltage(self, volts: float):
         if not self.is_disabled:
